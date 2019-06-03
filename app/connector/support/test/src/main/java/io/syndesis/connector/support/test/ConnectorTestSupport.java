@@ -47,154 +47,169 @@ import org.apache.camel.test.junit4.CamelTestSupport;
 import org.assertj.core.api.Assertions;
 
 public abstract class ConnectorTestSupport extends CamelTestSupport {
-    private final ResourceManager resourceManager;
+	private final ResourceManager resourceManager;
 
-    public ConnectorTestSupport() {
-        this.resourceManager = new ResourceManager();
-    }
+	public ConnectorTestSupport() {
+		this.resourceManager = new ResourceManager();
+	}
 
-    protected ResourceManager getResourceManager() {
-        return this.resourceManager;
-    }
+	protected ResourceManager getResourceManager() {
+		return this.resourceManager;
+	}
 
-    protected abstract List<Step> createSteps();
+	protected abstract List<Step> createSteps();
 
-    // ******************************
-    // Configure camel
-    // ******************************
+	// ******************************
+	// Configure camel
+	// ******************************
 
-    @Override
-    protected CamelContext createCamelContext() throws Exception {
-        CamelContext context = super.createCamelContext();
-        context.disableJMX();
+	@Override
+	protected CamelContext createCamelContext() throws Exception {
+		CamelContext context = super.createCamelContext();
+		context.disableJMX();
 
-        return context;
-    }
+		return context;
+	}
 
-    @Override
-    protected RoutesBuilder createRouteBuilder() throws Exception {
-        return new IntegrationRouteBuilder("", Resources.loadServices(IntegrationStepHandler.class)) {
-            @Override
-            protected Integration loadIntegration() throws IOException {
-                return newIntegration();
-            }
-        };
-    }
+	@Override
+	protected RoutesBuilder createRouteBuilder() throws Exception {
+		return new IntegrationRouteBuilder("", Resources.loadServices(IntegrationStepHandler.class)) {
+			@Override
+			protected Integration loadIntegration() throws IOException {
+				return newIntegration();
+			}
+		};
+	}
 
-    @Override
-    protected Properties useOverridePropertiesWithPropertiesComponent() {
-        try {
-            ProjectGeneratorConfiguration configuration = new ProjectGeneratorConfiguration();
-            ProjectGenerator projectGenerator = new ProjectGenerator(configuration, new ResourceManager(), new MavenProperties());
+	@Override
+	protected Properties useOverridePropertiesWithPropertiesComponent() {
+		try {
+			ProjectGeneratorConfiguration configuration = new ProjectGeneratorConfiguration();
+			ProjectGenerator projectGenerator = new ProjectGenerator(configuration, new ResourceManager(),
+					new MavenProperties());
 
-            return projectGenerator.generateApplicationProperties(newIntegration());
-        } catch (IOException e) {
-            Assertions.fail("Unable to generate integration properties", e);
-        }
+			return projectGenerator.generateApplicationProperties(newIntegration());
+		} catch (IOException e) {
+			Assertions.fail("Unable to generate integration properties", e);
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    // ******************************
-    // Helpers
-    // ******************************
+	// ******************************
+	// Helpers
+	// ******************************
 
-    protected final Step newSimpleEndpointStep(String scheme, Consumer<ConnectorDescriptor.Builder> consumer) {
-        ConnectorDescriptor.Builder builder = new ConnectorDescriptor.Builder().componentScheme(scheme);
-        consumer.accept(builder);
+	protected final Step newSimpleEndpointStep(String scheme, Consumer<ConnectorDescriptor.Builder> consumer) {
+		ConnectorDescriptor.Builder builder = new ConnectorDescriptor.Builder().componentScheme(scheme);
+		consumer.accept(builder);
 
-        return new Step.Builder()
-            .stepKind(StepKind.endpoint)
-            .action(new ConnectorAction.Builder()
-                .descriptor(builder.build())
-                .build())
-            .build();
-    }
+		return new Step.Builder().stepKind(StepKind.endpoint)
+				.action(new ConnectorAction.Builder().descriptor(builder.build()).build()).build();
+	}
 
-    protected final Step newEndpointStep(String connectorId, String actionId, Consumer<Connection.Builder> connectionConsumer, Consumer<Step.Builder> stepConsumer) {
-        Connector connector = resourceManager.mandatoryLoadConnector(connectorId);
-        ConnectorAction action = resourceManager.mandatoryLookupAction(connector, actionId);
+	protected final Step newEndpointStep(String connectorId, String actionId,
+			Consumer<Connection.Builder> connectionConsumer, Consumer<Step.Builder> stepConsumer) {
+		Connector connector = resourceManager.mandatoryLoadConnector(connectorId);
+		ConnectorAction action = resourceManager.mandatoryLookupAction(connector, actionId);
 
-        Connection.Builder connectionBuilder = new Connection.Builder().connector(connector);
-        connectionConsumer.accept(connectionBuilder);
+		Connection.Builder connectionBuilder = new Connection.Builder().connector(connector);
+		connectionConsumer.accept(connectionBuilder);
 
-        Step.Builder stepBuilder = new Step.Builder().stepKind(StepKind.endpoint).action(action).connection(connectionBuilder.build());
-        stepConsumer.accept(stepBuilder);
+		Step.Builder stepBuilder = new Step.Builder().stepKind(StepKind.endpoint).action(action)
+				.connection(connectionBuilder.build());
+		stepConsumer.accept(stepBuilder);
 
-        return stepBuilder.build();
-    }
+		return stepBuilder.build();
+	}
 
+	/**
+	 * Default integration creation will take the steps provided by the
+	 * implementation to create a test integration.
+	 * @return the integration to be tested
+	 */
+	protected final Integration newIntegration() {
+		return newIntegration("test-integration", "Test Integration", "This is a test integration!",
+				this.createSteps());
+	}
 
-    protected final Integration newIntegration() {
-        return new Integration.Builder()
-            .id("test-integration")
-            .name("Test Integration")
-            .description("This is a test integration!")
-            .addFlow(new Flow.Builder().steps(createSteps()).build())
-            .build();
-    }
+	/**
+	 * Overloaded integration method will allow customize the integration
+	 * according the the specific test
+	 * @param integrationId
+	 * @param integrationName
+	 * @param integrationDescription
+	 * @param integrationSteps
+	 * @return the integration to be tested
+	 */
+	protected final Integration newIntegration(String integrationId, String integrationName,
+			String integrationDescription, List<Step> integrationSteps) {
+		return new Integration.Builder().id(integrationId).name(integrationName).description(integrationDescription)
+				.addFlow(new Flow.Builder().steps(integrationSteps).build()).build();
+	}
 
-    // ******************************
-    //
-    // ******************************
+	// ******************************
+	//
+	// ******************************
 
-    protected static class ResourceManager implements IntegrationResourceManager {
-        @Override
-        public Optional<Connector> loadConnector(String id) {
-            Connector connector = null;
+	protected static class ResourceManager implements IntegrationResourceManager {
+		@Override
+		public Optional<Connector> loadConnector(String id) {
+			Connector connector = null;
 
-            try (InputStream is = ConnectorTestSupport.class.getClassLoader().getResourceAsStream("META-INF/syndesis/connector/" + id + ".json")) {
-                connector = Json.reader().forType(Connector.class).readValue(is);
-            } catch (IOException e) {
-                Assertions.fail("Unable to load connector: " + id, e);
-            }
+			try (InputStream is = ConnectorTestSupport.class.getClassLoader()
+					.getResourceAsStream("META-INF/syndesis/connector/" + id + ".json")) {
+				connector = Json.reader().forType(Connector.class).readValue(is);
+			} catch (IOException e) {
+				Assertions.fail("Unable to load connector: " + id, e);
+			}
 
-            return Optional.ofNullable(connector);
-        }
+			return Optional.ofNullable(connector);
+		}
 
-        @Override
-        public Optional<Extension> loadExtension(String id) {
-            return Optional.empty();
-        }
+		@Override
+		public Optional<Extension> loadExtension(String id) {
+			return Optional.empty();
+		}
 
-        @Override
-        public Optional<InputStream> loadExtensionBLOB(String id) {
-            return Optional.empty();
-        }
+		@Override
+		public Optional<InputStream> loadExtensionBLOB(String id) {
+			return Optional.empty();
+		}
 
-        @Override
-        public List<Extension> loadExtensionsByTag(String tag) {
-            return Collections.emptyList();
-        }
+		@Override
+		public List<Extension> loadExtensionsByTag(String tag) {
+			return Collections.emptyList();
+		}
 
-        @Override
-        public Optional<OpenApi> loadOpenApiDefinition(String s) {
-            return Optional.empty();
-        }
+		@Override
+		public Optional<OpenApi> loadOpenApiDefinition(String s) {
+			return Optional.empty();
+		}
 
-        @Override
-        public String decrypt(String encrypted) {
-            return encrypted;
-        }
+		@Override
+		public String decrypt(String encrypted) {
+			return encrypted;
+		}
 
-        public final Connector mandatoryLoadConnector(String connectorId) {
-            return loadConnector(connectorId)
-                .orElseThrow(() -> new IllegalArgumentException("Unable to find connector: " + connectorId));
-        }
+		public final Connector mandatoryLoadConnector(String connectorId) {
+			return loadConnector(connectorId)
+					.orElseThrow(() -> new IllegalArgumentException("Unable to find connector: " + connectorId));
+		}
 
-        public final ConnectorAction mandatoryLookupAction(Connector connector, String actionId) {
-            for (ConnectorAction action : connector.getActions()) {
-                if (action.getId().isPresent() && action.getId().get().equals(actionId)) {
-                    return action;
-                }
-            }
+		public final ConnectorAction mandatoryLookupAction(Connector connector, String actionId) {
+			for (ConnectorAction action : connector.getActions()) {
+				if (action.getId().isPresent() && action.getId().get().equals(actionId)) {
+					return action;
+				}
+			}
 
-            throw new IllegalArgumentException("Unable to find action: " + actionId);
-        }
+			throw new IllegalArgumentException("Unable to find action: " + actionId);
+		}
 
-        public final ConnectorAction mandatoryLookupAction(String connectorId, String actionId) {
-            Connector connector = mandatoryLoadConnector(connectorId);
-            return mandatoryLookupAction(connector, actionId);
-        }
-    }
+		public final ConnectorAction mandatoryLookupAction(String connectorId, String actionId) {
+			Connector connector = mandatoryLoadConnector(connectorId);
+			return mandatoryLookupAction(connector, actionId);
+		}
+	}
 }
