@@ -79,8 +79,8 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
         mongodExecutable.start();
         initClient();
     }
-	
-    private static void initClient() {
+
+	private static void initClient() {
     	mongoClient = new MongoClient(HOST);
     	database = mongoClient.getDatabase(DATABASE);
     	collection = database.getCollection(COLLECTION);
@@ -119,6 +119,18 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 					builder.putConfiguredProperty("operation", operation);
 				}, mongoClient));
 	}
+	
+	protected List<Step> fromMongoToMock(String mock, MongoClient mongoClient, String connector, String db,
+			String collection, String tailTrackIncreasingField) {
+		return Arrays.asList(
+				newMongoDBEndpointStep(connector, builder -> {
+					builder.putConfiguredProperty("database", db);
+					builder.putConfiguredProperty("collection", collection);
+					builder.putConfiguredProperty("tailTrackIncreasingField", tailTrackIncreasingField);
+				}, mongoClient),
+				newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock))
+				);
+	}	
 
 	private void registerBean(String name, Object bean) {
 		// We create the connection bean that will be used along the test.

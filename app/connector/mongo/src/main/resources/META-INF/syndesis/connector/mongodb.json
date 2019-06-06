@@ -59,7 +59,67 @@
       "id": "io.syndesis.connector:connector-mongodb-to",
       "name": "Mongo to",
       "pattern": "To"
-    }
+    },
+	{
+      "actionType": "connector",
+      "description": "Mongo DB from",
+      "descriptor": {
+        "componentScheme": "mongodb",
+        "inputDataShape": {
+          "kind": "json-schema"
+        },
+        "outputDataShape": {
+          "kind": "json-schema"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Enter a database.",
+            "name": "Database",
+            "properties": {
+              "database": {
+                "deprecated": false,
+                "displayName": "Database name",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Database name",
+                "placeholder": "database",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "collection": {
+                "deprecated": false,
+                "displayName": "Collection name",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Collection name",
+                "placeholder": "collection",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "operation": {
+                "deprecated": false,
+                "displayName": "Operation to perform",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Operation name",
+                "placeholder": "operation",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              }              
+            }
+		}    
+        ]
+      },
+      "id": "io.syndesis.connector:connector-mongodb-from",
+      "name": "Mongo from",
+      "pattern": "From"
+    }    
   ],
   "dependencies": [
     {
