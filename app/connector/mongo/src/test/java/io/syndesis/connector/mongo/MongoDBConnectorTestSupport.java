@@ -50,95 +50,74 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 
 	protected static final String CONNECTION_BEAN_NAME = "myDb";
 
-    private static MongodExecutable mongodExecutable;
-    
-    protected final static String HOST = "localhost";
-    protected final static int PORT = 27017;
-    protected final static String DATABASE = "test";
-    protected final static String COLLECTION = "test";
+	private static MongodExecutable mongodExecutable;
+
+	protected final static String HOST = "localhost";
+	protected final static int PORT = 27017;
+	protected final static String DATABASE = "test";
+	protected final static String COLLECTION = "test";
 
 	// Client connections
 	protected static MongoClient mongoClient;
 	protected static MongoDatabase database;
 	protected static MongoCollection<Document> collection;
-	
-    @AfterClass
-    public static void tearDownMongo() {
-    	mongodExecutable.stop();
-        mongoClient.close();
-    }
- 
-    @BeforeClass
-    public static void startUpMongo() throws Exception {
-        IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
-            .net(new Net(HOST, PORT, Network.localhostIsIPv6()))
-            .build();
- 
-        MongodStarter starter = MongodStarter.getDefaultInstance();
-        mongodExecutable = starter.prepare(mongodConfig);
-        mongodExecutable.start();
-        initClient();
-    }
+
+	@AfterClass
+	public static void tearDownMongo() {
+		mongodExecutable.stop();
+		mongoClient.close();
+	}
+
+	@BeforeClass
+	public static void startUpMongo() throws Exception {
+		IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
+				.net(new Net(HOST, PORT, Network.localhostIsIPv6())).build();
+
+		MongodStarter starter = MongodStarter.getDefaultInstance();
+		mongodExecutable = starter.prepare(mongodConfig);
+		mongodExecutable.start();
+		initClient();
+	}
 
 	private static void initClient() {
-    	mongoClient = new MongoClient(HOST);
-    	database = mongoClient.getDatabase(DATABASE);
-    	collection = database.getCollection(COLLECTION);
+		mongoClient = new MongoClient(HOST);
+		database = mongoClient.getDatabase(DATABASE);
+		collection = database.getCollection(COLLECTION);
 	}
 
 	// **************************
-    // Helpers
-    // **************************
+	// Helpers
+	// **************************
 
-    protected Step newMongoDBEndpointStep(String actionId, Consumer<Step.Builder> consumer, MongoClient mongoClient) {
-        final Connector connector = getResourceManager().mandatoryLoadConnector("mongodb");
-        final ConnectorAction action = getResourceManager().mandatoryLookupAction(connector, actionId);
-		
-        registerBean(CONNECTION_BEAN_NAME, mongoClient);
-        
-        final Step.Builder builder = new Step.Builder()
-            .stepKind(StepKind.endpoint)
-            .action(action)
-            .connection(new io.syndesis.common.model.connection.Connection.Builder()
-                .connector(connector)
-                .putConfiguredProperty("connectionBean", CONNECTION_BEAN_NAME)
-                .build()
-            );
+	protected Step newMongoDBEndpointStep(String actionId, Consumer<Step.Builder> consumer, MongoClient mongoClient) {
+		final Connector connector = getResourceManager().mandatoryLoadConnector("mongodb");
+		final ConnectorAction action = getResourceManager().mandatoryLookupAction(connector, actionId);
 
-        consumer.accept(builder);
+		final Step.Builder builder = new Step.Builder().stepKind(StepKind.endpoint).action(action)
+				.connection(new io.syndesis.common.model.connection.Connection.Builder().connector(connector).build());
 
-        return builder.build();
-    }
-    
+		consumer.accept(builder);
+
+		return builder.build();
+	}
+
 	protected List<Step> fromDirectToMongo(String directStart, MongoClient mongoClient, String connector, String db,
 			String collection, String operation) {
-		return Arrays.asList(newSimpleEndpointStep("direct", builder -> builder.putConfiguredProperty("name", directStart)),
+		return Arrays.asList(
+				newSimpleEndpointStep("direct", builder -> builder.putConfiguredProperty("name", directStart)),
 				newMongoDBEndpointStep(connector, builder -> {
 					builder.putConfiguredProperty("database", db);
 					builder.putConfiguredProperty("collection", collection);
 					builder.putConfiguredProperty("operation", operation);
 				}, mongoClient));
 	}
-	
+
 	protected List<Step> fromMongoToMock(String mock, MongoClient mongoClient, String connector, String db,
 			String collection, String tailTrackIncreasingField) {
-		return Arrays.asList(
-				newMongoDBEndpointStep(connector, builder -> {
-					builder.putConfiguredProperty("database", db);
-					builder.putConfiguredProperty("collection", collection);
-					builder.putConfiguredProperty("tailTrackIncreasingField", tailTrackIncreasingField);
-				}, mongoClient),
-				newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock))
-				);
-	}	
-
-	private void registerBean(String name, Object bean) {
-		// We create the connection bean that will be used along the test.
-        CamelContext camelContext = template.getCamelContext();
-        // Must create a new ad-hoc registry for the scope
-        // See https://issues.apache.org/jira/browse/CAMEL-7875
-        final org.apache.camel.impl.SimpleRegistry registry = new org.apache.camel.impl.SimpleRegistry();
-        registry.put(CONNECTION_BEAN_NAME, bean);
-        ((org.apache.camel.impl.DefaultCamelContext) camelContext).setRegistry(registry);
+		return Arrays.asList(newMongoDBEndpointStep(connector, builder -> {
+			builder.putConfiguredProperty("database", db);
+			builder.putConfiguredProperty("collection", collection);
+			builder.putConfiguredProperty("tailTrackIncreasingField", tailTrackIncreasingField);
+		}, mongoClient), newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock)));
 	}
 }

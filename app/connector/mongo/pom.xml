@@ -50,6 +50,10 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.syndesis.integration</groupId>
+      <artifactId>integration-component-proxy</artifactId>
     </dependency>       
     <!-- Testing -->
     <dependency>

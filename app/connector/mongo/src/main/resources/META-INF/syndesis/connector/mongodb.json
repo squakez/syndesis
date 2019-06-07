@@ -5,6 +5,9 @@
       "description": "Mongo DB to",
       "descriptor": {
         "componentScheme": "mongodb",
+        "connectorCustomizers": [
+          "io.syndesis.connector.mongo.MongoCustomizer"
+        ],        
         "inputDataShape": {
           "kind": "json-schema"
         },
