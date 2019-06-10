@@ -48,76 +48,76 @@ import io.syndesis.connector.support.test.ConnectorTestSupport;
 
 public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 
-	protected static final String CONNECTION_BEAN_NAME = "myDb";
+    protected static final String CONNECTION_BEAN_NAME = "myDb";
 
-	private static MongodExecutable mongodExecutable;
+    private static MongodExecutable mongodExecutable;
 
-	protected final static String HOST = "localhost";
-	protected final static int PORT = 27017;
-	protected final static String DATABASE = "test";
-	protected final static String COLLECTION = "test";
+    protected final static String HOST = "localhost";
+    protected final static int PORT = 27017;
+    protected final static String DATABASE = "test";
+    protected final static String COLLECTION = "test";
 
-	// Client connections
-	protected static MongoClient mongoClient;
-	protected static MongoDatabase database;
-	protected static MongoCollection<Document> collection;
+    // Client connections
+    protected static MongoClient mongoClient;
+    protected static MongoDatabase database;
+    protected static MongoCollection<Document> collection;
 
-	@AfterClass
-	public static void tearDownMongo() {
-		mongodExecutable.stop();
-		mongoClient.close();
-	}
+    @AfterClass
+    public static void tearDownMongo() {
+        mongodExecutable.stop();
+        mongoClient.close();
+    }
 
-	@BeforeClass
-	public static void startUpMongo() throws Exception {
-		IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
-				.net(new Net(HOST, PORT, Network.localhostIsIPv6())).build();
+    @BeforeClass
+    public static void startUpMongo() throws Exception {
+        IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
+                .net(new Net(HOST, PORT, Network.localhostIsIPv6())).build();
 
-		MongodStarter starter = MongodStarter.getDefaultInstance();
-		mongodExecutable = starter.prepare(mongodConfig);
-		mongodExecutable.start();
-		initClient();
-	}
+        MongodStarter starter = MongodStarter.getDefaultInstance();
+        mongodExecutable = starter.prepare(mongodConfig);
+        mongodExecutable.start();
+        initClient();
+    }
 
-	private static void initClient() {
-		mongoClient = new MongoClient(HOST);
-		database = mongoClient.getDatabase(DATABASE);
-		collection = database.getCollection(COLLECTION);
-	}
+    private static void initClient() {
+        mongoClient = new MongoClient(HOST);
+        database = mongoClient.getDatabase(DATABASE);
+        collection = database.getCollection(COLLECTION);
+    }
 
-	// **************************
-	// Helpers
-	// **************************
+    // **************************
+    // Helpers
+    // **************************
 
-	protected Step newMongoDBEndpointStep(String actionId, Consumer<Step.Builder> consumer, MongoClient mongoClient) {
-		final Connector connector = getResourceManager().mandatoryLoadConnector("mongodb");
-		final ConnectorAction action = getResourceManager().mandatoryLookupAction(connector, actionId);
+    protected Step newMongoDBEndpointStep(String actionId, Consumer<Step.Builder> consumer, MongoClient mongoClient) {
+        final Connector connector = getResourceManager().mandatoryLoadConnector("mongodb");
+        final ConnectorAction action = getResourceManager().mandatoryLookupAction(connector, actionId);
 
-		final Step.Builder builder = new Step.Builder().stepKind(StepKind.endpoint).action(action)
-				.connection(new io.syndesis.common.model.connection.Connection.Builder().connector(connector).build());
+        final Step.Builder builder = new Step.Builder().stepKind(StepKind.endpoint).action(action)
+                .connection(new io.syndesis.common.model.connection.Connection.Builder().connector(connector).build());
 
-		consumer.accept(builder);
+        consumer.accept(builder);
 
-		return builder.build();
-	}
+        return builder.build();
+    }
 
-	protected List<Step> fromDirectToMongo(String directStart, MongoClient mongoClient, String connector, String db,
-			String collection, String operation) {
-		return Arrays.asList(
-				newSimpleEndpointStep("direct", builder -> builder.putConfiguredProperty("name", directStart)),
-				newMongoDBEndpointStep(connector, builder -> {
-					builder.putConfiguredProperty("database", db);
-					builder.putConfiguredProperty("collection", collection);
-					builder.putConfiguredProperty("operation", operation);
-				}, mongoClient));
-	}
+    protected List<Step> fromDirectToMongo(String directStart, MongoClient mongoClient, String connector, String db,
+            String collection, String operation) {
+        return Arrays.asList(
+                newSimpleEndpointStep("direct", builder -> builder.putConfiguredProperty("name", directStart)),
+                newMongoDBEndpointStep(connector, builder -> {
+                    builder.putConfiguredProperty("database", db);
+                    builder.putConfiguredProperty("collection", collection);
+                    builder.putConfiguredProperty("operation", operation);
+                }, mongoClient));
+    }
 
-	protected List<Step> fromMongoToMock(String mock, MongoClient mongoClient, String connector, String db,
-			String collection, String tailTrackIncreasingField) {
-		return Arrays.asList(newMongoDBEndpointStep(connector, builder -> {
-			builder.putConfiguredProperty("database", db);
-			builder.putConfiguredProperty("collection", collection);
-			builder.putConfiguredProperty("tailTrackIncreasingField", tailTrackIncreasingField);
-		}, mongoClient), newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock)));
-	}
+    protected List<Step> fromMongoToMock(String mock, MongoClient mongoClient, String connector, String db,
+            String collection, String tailTrackIncreasingField) {
+        return Arrays.asList(newMongoDBEndpointStep(connector, builder -> {
+            builder.putConfiguredProperty("database", db);
+            builder.putConfiguredProperty("collection", collection);
+            builder.putConfiguredProperty("tailTrackIncreasingField", tailTrackIncreasingField);
+        }, mongoClient), newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock)));
+    }
 }

@@ -31,54 +31,54 @@ import io.syndesis.common.model.integration.Step;
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
 public class MongoDBConnectorFindyAllTest extends MongoDBConnectorTestSupport {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	// **************************
-	// Set up
-	// **************************
+    // **************************
+    // Set up
+    // **************************
 
-	@Override
-	protected List<Step> createSteps() {
-		return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
-				COLLECTION, "findAll");
-	}
+    @Override
+    protected List<Step> createSteps() {
+        return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
+                COLLECTION, "findAll");
+    }
 
-	// **************************
-	// Tests
-	// **************************
+    // **************************
+    // Tests
+    // **************************
 
-	@Test
-	public void mongoFindAllTest() throws IOException {
-		// When
-		String uniqueId = UUID.randomUUID().toString();
-		Document doc = new Document();
-		doc.append("_id", 1);
-		doc.append("unique", uniqueId);
-		collection.insertOne(doc);
-		String uniqueId2 = UUID.randomUUID().toString();
-		Document doc2 = new Document();
-		doc2.append("_id", 2);
-		doc2.append("unique", uniqueId2);
-		collection.insertOne(doc2);
-		// Given
-		List<?> results = template.requestBody("direct:start", null, List.class);
-		List<String> jsonStrings = results.stream().map(Object::toString).collect(Collectors.toList());
-		// Then
-		assertEquals(2, results.size());
-		assertEquals(uniqueId, getUniqueFromDocWithId(jsonStrings, 1));
-		assertEquals(uniqueId2, getUniqueFromDocWithId(jsonStrings, 2));
-	}
+    @Test
+    public void mongoFindAllTest() throws IOException {
+        // When
+        String uniqueId = UUID.randomUUID().toString();
+        Document doc = new Document();
+        doc.append("_id", 1);
+        doc.append("unique", uniqueId);
+        collection.insertOne(doc);
+        String uniqueId2 = UUID.randomUUID().toString();
+        Document doc2 = new Document();
+        doc2.append("_id", 2);
+        doc2.append("unique", uniqueId2);
+        collection.insertOne(doc2);
+        // Given
+        List<?> results = template.requestBody("direct:start", null, List.class);
+        List<String> jsonStrings = results.stream().map(Object::toString).collect(Collectors.toList());
+        // Then
+        assertEquals(2, results.size());
+        assertEquals(uniqueId, getUniqueFromDocWithId(jsonStrings, 1));
+        assertEquals(uniqueId2, getUniqueFromDocWithId(jsonStrings, 2));
+    }
 
-	private String getUniqueFromDocWithId(List<String> results, int i) throws IOException {
-		for (String json : results) {
-			JsonNode jsonNode = MAPPER.readTree(json);
-			int _id = jsonNode.get("_id").asInt();
-			String unique = jsonNode.get("unique").textValue();
-			if (_id == i) {
-				return unique;
-			}
-		}
-		return null;
-	}
+    private String getUniqueFromDocWithId(List<String> results, int i) throws IOException {
+        for (String json : results) {
+            JsonNode jsonNode = MAPPER.readTree(json);
+            int _id = jsonNode.get("_id").asInt();
+            String unique = jsonNode.get("unique").textValue();
+            if (_id == i) {
+                return unique;
+            }
+        }
+        return null;
+    }
 
 }

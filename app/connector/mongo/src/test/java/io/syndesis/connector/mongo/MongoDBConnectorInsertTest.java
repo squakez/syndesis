@@ -29,29 +29,30 @@ import io.syndesis.common.model.integration.Step;
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
 public class MongoDBConnectorInsertTest extends MongoDBConnectorTestSupport {
 
-	// **************************
-	// Set up
-	// **************************
+    // **************************
+    // Set up
+    // **************************
 
-	@Override
-	protected List<Step> createSteps() {
-		return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE, COLLECTION, "insert");
-	}
+    @Override
+    protected List<Step> createSteps() {
+        return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
+                COLLECTION, "insert");
+    }
 
-	// **************************
-	// Tests
-	// **************************
+    // **************************
+    // Tests
+    // **************************
 
-	@Test
-	public void mongoInsertTest() {
-		// When
-		// Given
-		String uniqueId = UUID.randomUUID().toString();
-		String message = String.format("{\"test\":\"unit\",\"uniqueId\":\"%s\"}", uniqueId);
-		template().sendBody("direct:start", message);
-		// Then
-		List<Document> docsFound = collection.find(Filters.eq("uniqueId", uniqueId)).into(new ArrayList<Document>());
-		assertEquals(1, docsFound.size());
-	}
+    @Test
+    public void mongoInsertTest() {
+        // When
+        // Given
+        String uniqueId = UUID.randomUUID().toString();
+        String message = String.format("{\"test\":\"unit\",\"uniqueId\":\"%s\"}", uniqueId);
+        template().sendBody("direct:start", message);
+        // Then
+        List<Document> docsFound = collection.find(Filters.eq("uniqueId", uniqueId)).into(new ArrayList<Document>());
+        assertEquals(1, docsFound.size());
+    }
 
 }

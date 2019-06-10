@@ -29,44 +29,43 @@ import io.syndesis.common.model.integration.Step;
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
 public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnectorTestSupport {
 
-	// **************************
-	// Set up
-	// **************************
-	
-	@Override
-	public void doPreSetup(){
-		// The feature only works with capped collections!
-		CreateCollectionOptions opts = new CreateCollectionOptions().capped(true).sizeInBytes(1024*1024);
+    // **************************
+    // Set up
+    // **************************
+
+    @Override
+    public void doPreSetup() {
+        // The feature only works with capped collections!
+        CreateCollectionOptions opts = new CreateCollectionOptions().capped(true).sizeInBytes(1024 * 1024);
         database.createCollection("test", opts);
-	}
-	
-	@Override
-	protected List<Step> createSteps() {
-		return fromMongoToMock("result", mongoClient, "io.syndesis.connector:connector-mongodb-from", DATABASE,
-				COLLECTION, "_id");				
-	}
+    }
 
-	// **************************
-	// Tests
-	// **************************
+    @Override
+    protected List<Step> createSteps() {
+        return fromMongoToMock("result", mongoClient, "io.syndesis.connector:connector-mongodb-from", DATABASE,
+                COLLECTION, "_id");
+    }
 
-	@Test
-	public void mongoTest() throws Exception {
-		// When
+    // **************************
+    // Tests
+    // **************************
+
+    @Test
+    public void mongoTest() throws Exception {
+        // When
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedMessageCount(1);
-        mock.expectedMessagesMatches(
-        		(Exchange e) -> {
-        			String json = e.getMessage().getBody(String.class);
-        			// We may test if the json is well formatted, etc...
-        			return json.contains("someKey") && json.contains("someValue");}
-        		);
-		// Given
-		Document doc = new Document();
-    	doc.append("someKey", "someValue");
-    	collection.insertOne(doc);
-		// Then
+        mock.expectedMessagesMatches((Exchange e) -> {
+            String json = e.getMessage().getBody(String.class);
+            // We may test if the json is well formatted, etc...
+            return json.contains("someKey") && json.contains("someValue");
+        });
+        // Given
+        Document doc = new Document();
+        doc.append("someKey", "someValue");
+        collection.insertOne(doc);
+        // Then
         mock.assertIsSatisfied();
-	}
+    }
 
 }

@@ -28,33 +28,35 @@ import io.syndesis.common.model.integration.Step;
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
 public class MongoDBConnectorNotSupportedOperationTest extends MongoDBConnectorTestSupport {
 
-	// **************************
-	// Set up
-	// **************************
+    // **************************
+    // Set up
+    // **************************
 
-	@Override
-	@Before
+    @Override
+    @Before
     public void setUp() {
-		try{
-			super.setUp();
-			fail("Setup should have thrown an exception!");
-		}catch(Exception e){
-			//We do expect a failure cause the operation provided is not supported
-		}
-	}
-	@Override
-	protected List<Step> createSteps() {
-		return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
-				COLLECTION, "somethingNotSupported");
-	}
+        try {
+            super.setUp();
+            fail("Setup should have thrown an exception!");
+        } catch (Exception e) {
+            // We do expect a failure cause the operation provided is not
+            // supported
+        }
+    }
 
-	// **************************
-	// Tests
-	// **************************
+    @Override
+    protected List<Step> createSteps() {
+        return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
+                COLLECTION, "somethingNotSupported");
+    }
 
-	@Test
-	public void mongoTest() {
-		assertTrue(true);
-	}
+    // **************************
+    // Tests
+    // **************************
+
+    @Test
+    public void mongoTest() {
+        assertTrue(true);
+    }
 
 }
