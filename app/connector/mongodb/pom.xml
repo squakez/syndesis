@@ -16,8 +16,8 @@
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>connector-mongo</artifactId>
-	<name>Connector :: Mongo</name>
+	<artifactId>connector-mongodb</artifactId>
+	<name>Connector :: MongoDB</name>
 	<packaging>jar</packaging>
 
 	<dependencies>

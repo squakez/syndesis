@@ -39,8 +39,8 @@ public class MongoDBConnectorFindyAllTest extends MongoDBConnectorTestSupport {
 
     @Override
     protected List<Step> createSteps() {
-        return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
-                COLLECTION, "findAll");
+        return fromDirectToMongo("start", "io.syndesis.connector:connector-mongodb-producer", DATABASE, COLLECTION,
+                "findAll");
     }
 
     // **************************

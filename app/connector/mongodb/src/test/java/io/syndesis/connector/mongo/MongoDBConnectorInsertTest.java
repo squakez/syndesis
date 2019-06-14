@@ -15,39 +15,28 @@
  */
 package io.syndesis.connector.mongo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.camel.ResolveEndpointFailedException;
-import org.apache.camel.component.mongodb.CamelMongoDbException;
-import org.junit.Before;
+import org.bson.Document;
 import org.junit.Test;
+
+import com.mongodb.client.model.Filters;
 
 import io.syndesis.common.model.integration.Step;
 
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
-public class MongoDBConnectorNotSupportedOperationTest extends MongoDBConnectorTestSupport {
+public class MongoDBConnectorInsertTest extends MongoDBConnectorTestSupport {
 
     // **************************
     // Set up
     // **************************
 
     @Override
-    @Before
-    public void setUp() {
-        try {
-            super.setUp();
-            fail("Setup should have thrown an exception!");
-        } catch (Exception e) {
-            // We do expect a failure cause the operation provided is not
-            // supported
-        }
-    }
-
-    @Override
     protected List<Step> createSteps() {
-        return fromDirectToMongo("start", mongoClient, "io.syndesis.connector:connector-mongodb-to", DATABASE,
-                COLLECTION, "somethingNotSupported");
+        return fromDirectToMongo("start", "io.syndesis.connector:connector-mongodb-producer", DATABASE, COLLECTION,
+                "insert");
     }
 
     // **************************
@@ -55,8 +44,15 @@ public class MongoDBConnectorNotSupportedOperationTest extends MongoDBConnectorT
     // **************************
 
     @Test
-    public void mongoTest() {
-        assertTrue(true);
+    public void mongoInsertTest() {
+        // When
+        // Given
+        String uniqueId = UUID.randomUUID().toString();
+        String message = String.format("{\"test\":\"unit\",\"uniqueId\":\"%s\"}", uniqueId);
+        template().sendBody("direct:start", message);
+        // Then
+        List<Document> docsFound = collection.find(Filters.eq("uniqueId", uniqueId)).into(new ArrayList<Document>());
+        assertEquals(1, docsFound.size());
     }
 
 }

@@ -42,8 +42,8 @@ public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnect
 
     @Override
     protected List<Step> createSteps() {
-        return fromMongoToMock("result", mongoClient, "io.syndesis.connector:connector-mongodb-from", DATABASE,
-                COLLECTION, "_id");
+        return fromMongoToMock("result", "io.syndesis.connector:connector-mongodb-consumer", DATABASE, COLLECTION,
+                "_id");
     }
 
     // **************************

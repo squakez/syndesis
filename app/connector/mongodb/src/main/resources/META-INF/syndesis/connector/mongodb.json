@@ -2,7 +2,7 @@
   "actions": [
     {
       "actionType": "connector",
-      "description": "Mongo DB to",
+      "description": "Mongo DB producer",
       "descriptor": {
         "componentScheme": "mongodb",
         "connectorCustomizers": [
@@ -16,7 +16,7 @@
         },
         "propertyDefinitionSteps": [
           {
-            "description": "Enter a database.",
+            "description": "Producer configuration",
             "name": "Database",
             "properties": {
               "database": {
@@ -59,13 +59,13 @@
 		}    
         ]
       },
-      "id": "io.syndesis.connector:connector-mongodb-to",
-      "name": "Mongo to",
+      "id": "io.syndesis.connector:connector-mongodb-producer",
+      "name": "Mongo producer",
       "pattern": "To"
     },
 	{
       "actionType": "connector",
-      "description": "Mongo DB from",
+      "description": "Mongo DB consumer",
       "descriptor": {
         "componentScheme": "mongodb",
         "connectorCustomizers": [
@@ -79,7 +79,7 @@
         },
         "propertyDefinitionSteps": [
           {
-            "description": "Enter a database.",
+            "description": "Consumer configuration",
             "name": "Database",
             "properties": {
               "database": {
@@ -122,8 +122,8 @@
 		}    
         ]
       },
-      "id": "io.syndesis.connector:connector-mongodb-from",
-      "name": "Mongo from",
+      "id": "io.syndesis.connector:connector-mongodb-consumer",
+      "name": "Mongo consumer",
       "pattern": "From"
     }    
   ],
