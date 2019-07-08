@@ -16,10 +16,7 @@
 package io.syndesis.connector.mongo;
 
 import java.util.List;
-import java.util.UUID;
 
-import org.apache.camel.ResolveEndpointFailedException;
-import org.apache.camel.component.mongodb.CamelMongoDbException;
 import org.junit.Before;
 import org.junit.Test;
 

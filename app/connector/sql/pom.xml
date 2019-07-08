@@ -29,6 +29,10 @@
   <name>Connector :: SQL</name>
   <packaging>jar</packaging>
 
+    <properties>
+        <camel.version>2.21.5</camel.version>
+    </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.springframework</groupId>

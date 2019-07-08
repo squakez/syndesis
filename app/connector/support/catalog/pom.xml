@@ -29,42 +29,7 @@
   <packaging>jar</packaging>
 
   <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-twitter</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-ftp</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-sftp</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-dropbox</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-aws-s3</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-aws-sns</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-aws-sqs</artifactId>
-      <scope>provided</scope>
-    </dependency>
+    <!-- Please, maintain in alphabetical order -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>connector-activemq</artifactId>
@@ -77,54 +42,44 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-sql</artifactId>
+      <artifactId>connector-api-provider</artifactId>
+      <scope>provided</scope>
+    </dependency>       
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-aws-s3</artifactId>
+      <scope>provided</scope>
+    </dependency>    
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-aws-sns</artifactId>
+      <scope>provided</scope>
+    </dependency> 
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-aws-sqs</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-mqtt</artifactId>
+      <artifactId>connector-box</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-http</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-salesforce</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-slack</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-gmail</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-timer</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-servicenow</artifactId>
-      <scope>provided</scope>
-    </dependency>
+    </dependency>    
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>connector-concur</artifactId>
       <scope>provided</scope>
+    </dependency>       
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-dropbox</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-kafka</artifactId>
+      <artifactId>connector-email</artifactId>
       <scope>provided</scope>
-    </dependency>
+    </dependency>    
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>connector-fhir</artifactId>
@@ -132,27 +87,17 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-webhook</artifactId>
+      <artifactId>connector-flow</artifactId>
+      <scope>provided</scope>
+    </dependency>        
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-ftp</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-log</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-telegram</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-irc</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-api-provider</artifactId>
+      <artifactId>connector-gmail</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -164,10 +109,45 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>connector-google-sheets</artifactId>
       <scope>provided</scope>
+    </dependency>        
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-http</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>connector-irc</artifactId>
+      <scope>provided</scope>
+    </dependency>    
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-kafka</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-knative</artifactId>
+      <scope>provided</scope>
+    </dependency>    
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>connector-kudu</artifactId>
+      <scope>provided</scope>
+    </dependency>    
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-log</artifactId>
+      <scope>provided</scope>
+    </dependency>          
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-mqtt</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-mongodb</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -177,29 +157,55 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-box</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>connector-flow</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>connector-rest-swagger</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-email</artifactId>
+      <artifactId>connector-salesforce</artifactId>
+      <scope>provided</scope>
+    </dependency>               
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-servicenow</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>connector-knative</artifactId>
+      <artifactId>connector-sftp</artifactId>
+      <scope>provided</scope>
+    </dependency>       
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-slack</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-sql</artifactId>
+      <scope>provided</scope>
+    </dependency>     
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-telegram</artifactId>
+      <scope>provided</scope>
+    </dependency>    
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-timer</artifactId>
+      <scope>provided</scope>
+    </dependency>               
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-twitter</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>connector-webhook</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Please, maintain the above in alphabetical order -->     
   </dependencies>
 
   <build>

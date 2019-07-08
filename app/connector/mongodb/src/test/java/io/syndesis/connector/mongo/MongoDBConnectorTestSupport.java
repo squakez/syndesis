@@ -22,6 +22,7 @@ import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -38,6 +39,7 @@ import io.syndesis.connector.support.test.ConnectorTestSupport;
 
 public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected static final String CONNECTION_BEAN_NAME = "myDb";
 
     private static MongodExecutable mongodExecutable;
@@ -100,7 +102,7 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
             String operation) {
         return Arrays.asList(
                 newSimpleEndpointStep("direct", builder -> builder.putConfiguredProperty("name", directStart)),
-                newEndpointStep("mongodb", "io.syndesis.connector:connector-mongodb-producer", builder -> {
+                newEndpointStep("mongodb3", connector, builder -> {
                 }, builder -> {
                     builder.putConfiguredProperty("host", HOST);
                     builder.putConfiguredProperty("user", USER);
@@ -113,7 +115,7 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 
     protected List<Step> fromMongoToMock(String mock, String connector, String db, String collection,
             String tailTrackIncreasingField) {
-        return Arrays.asList(newEndpointStep("mongodb", "io.syndesis.connector:connector-mongodb-producer", builder -> {
+        return Arrays.asList(newEndpointStep("mongodb3", connector, builder -> {
         }, builder -> {
             builder.putConfiguredProperty("host", HOST);
             builder.putConfiguredProperty("user", USER);

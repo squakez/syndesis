@@ -30,9 +30,6 @@ import io.syndesis.common.model.integration.Step;
 
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
 public class MongoDBConnectorFindyAllTest extends MongoDBConnectorTestSupport {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     // **************************
     // Set up
     // **************************
@@ -61,8 +58,9 @@ public class MongoDBConnectorFindyAllTest extends MongoDBConnectorTestSupport {
         doc2.append("unique", uniqueId2);
         collection.insertOne(doc2);
         // Given
-        List<?> results = template.requestBody("direct:start", null, List.class);
-        List<String> jsonStrings = results.stream().map(Object::toString).collect(Collectors.toList());
+        @SuppressWarnings("unchecked")
+        List<Document> results = template.requestBody("direct:start", null, List.class);
+        List<String> jsonStrings = results.stream().map(Document::toJson).collect(Collectors.toList());
         // Then
         assertEquals(2, results.size());
         assertEquals(uniqueId, getUniqueFromDocWithId(jsonStrings, 1));
