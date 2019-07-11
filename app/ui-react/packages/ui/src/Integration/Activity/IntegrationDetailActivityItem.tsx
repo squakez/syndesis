@@ -25,7 +25,7 @@ export interface IIntegrationDetailActivityItemProps {
 const headerFormat = (value: string) => <Table.Heading>{value}</Table.Heading>;
 const cellFormat = (value: string) => <Table.Cell>{value}</Table.Cell>;
 const statusCellFormat = (status: string) => (
-  <Table.Cell>
+  <Table.Cell className="integration-detail-activity-item__status">
     {status === 'Success' ? (
       <>
         <Icon type="pf" name="ok" /> Success
@@ -38,8 +38,10 @@ const statusCellFormat = (status: string) => (
   </Table.Cell>
 );
 const outputCellFormat = (output: string) => (
-  <Table.Cell>
-    <pre className="integration-detail-activity-item-step-output">{output}</pre>
+  <Table.Cell className="integration-detail-activity-item__output">
+    <pre className="integration-detail-activity-item__output-step-data">
+      {output || 'No output'}
+    </pre>
   </Table.Cell>
 );
 
@@ -51,31 +53,30 @@ export class IntegrationDetailActivityItem extends React.Component<
       <ListView.Item
         className="integration-detail-activity-item"
         key={this.props.time}
-        actions={
-          <div className="integration-detail-activity-item__status-item">
-            {this.props.errorCount > 0 ? (
-              <span>
-                <Icon type="pf" name="error-circle-o" />
-                {'  '}
-                {this.props.i18nErrorsFound}
-              </span>
-            ) : (
-              <span>
-                <Icon type="pf" name="ok" />
-                {'  '}
-                {this.props.i18nNoErrors}
-              </span>
-            )}
-          </div>
-        }
-        leftContent={this.props.date}
-        heading={<></>}
+        heading={this.props.date}
         description={this.props.time}
         additionalInfo={[
           <ListView.InfoItem key={1}>
             {this.props.i18nVersion}
             &nbsp;
             {this.props.version}
+          </ListView.InfoItem>,
+          <ListView.InfoItem key={2}>
+            <div className="integration-detail-activity-item__status-item">
+              {this.props.errorCount > 0 ? (
+                <>
+                  <Icon type="pf" name="error-circle-o" />
+                  {'  '}
+                  {this.props.i18nErrorsFound}
+                </>
+              ) : (
+                <>
+                  <Icon type="pf" name="ok" />
+                  {'  '}
+                  {this.props.i18nNoErrors}
+                </>
+              )}
+            </div>
           </ListView.InfoItem>,
         ]}
       >

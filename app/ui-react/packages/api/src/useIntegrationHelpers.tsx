@@ -17,12 +17,27 @@ import { PUBLISHED, UNPUBLISHED } from './constants';
 import {
   createStep,
   insertStepIntoFlowBefore,
+  prepareIntegrationForSaving,
+  removeStepFromFlow,
   setDescriptorOnStep,
   setStepInFlow,
 } from './helpers';
 
 export const useIntegrationHelpers = () => {
   const apiContext = React.useContext(ApiContext);
+
+  const fetchStepDescriptors = async (steps: Step[]): Promise<Step[]> => {
+    const response = await callFetch({
+      body: steps,
+      headers: apiContext.headers,
+      method: 'POST',
+      url: `${apiContext.apiUri}/steps/descriptor`,
+    });
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
+    return (await response.json()) as Step[];
+  };
 
   /**
    * adds a step of type connection to the provided integration object.
@@ -46,29 +61,30 @@ export const useIntegrationHelpers = () => {
     position: number,
     configuredProperties: any
   ): Promise<Integration> => {
-    const actionDescriptor = await getActionDescriptor(
-      connection.id!,
-      action.id!,
-      configuredProperties
-    );
-    return produce(integration, draft => {
+    return produce(integration, async () => {
+      const actionDescriptor = await getActionDescriptor(
+        connection.id!,
+        action.id!,
+        configuredProperties
+      );
       const step: Step = setDescriptorOnStep(
         {
           action,
           configuredProperties,
           connection,
           id: key(),
+          metadata: { configured: true } as any,
           stepKind: 'endpoint',
         },
         actionDescriptor!
       );
-      draft.flows = draft.flows!.map(f => {
-        if (f.id === flowId) {
-          f.steps!.splice(position, 0, step);
-        }
-        return f;
-      });
-      draft.tags = Array.from(new Set([...(draft.tags || []), connection.id!]));
+      return insertStepIntoFlowBefore(
+        integration,
+        flowId,
+        step,
+        position,
+        fetchStepDescriptors
+      );
     });
   };
 
@@ -91,14 +107,21 @@ export const useIntegrationHelpers = () => {
     position: number,
     configuredProperties: any
   ): Promise<Integration> => {
-    return produce(integration, draft => {
+    return produce(integration, async () => {
       const step: Step = {
         ...createStep(),
         ...stepKind,
         configuredProperties,
+        metadata: { configured: true } as any,
       };
 
-      return insertStepIntoFlowBefore(draft, flowId, step, position);
+      return insertStepIntoFlowBefore(
+        integration,
+        flowId,
+        step,
+        position,
+        fetchStepDescriptors
+      );
     });
   };
 
@@ -181,6 +204,10 @@ export const useIntegrationHelpers = () => {
       throw new Error(response.statusText);
     }
   };
+
+  /**
+   * Uploads and imports the supplied OpenAPI specification
+   */
 
   /**
    * Requests a .zip file of the integration, using the specified filename
@@ -305,28 +332,30 @@ export const useIntegrationHelpers = () => {
     position: number,
     configuredProperties: any
   ): Promise<Integration> => {
-    const actionDescriptor = await getActionDescriptor(
-      connection.id!,
-      action.id!,
-      configuredProperties
-    );
-    return produce(integration, draft => {
+    return produce(integration, async () => {
+      const actionDescriptor = await getActionDescriptor(
+        connection.id!,
+        action.id!,
+        configuredProperties
+      );
       const step: Step = setDescriptorOnStep(
         {
           action,
           configuredProperties,
           connection,
           id: key(),
+          metadata: { configured: true } as any,
           stepKind: 'endpoint',
         },
         actionDescriptor!
       );
-      draft.flows = draft.flows!.map(f => {
-        if (f.id === flowId) {
-          f.steps![position] = step;
-        }
-        return f;
-      });
+      return setStepInFlow(
+        integration,
+        flowId,
+        step,
+        position,
+        fetchStepDescriptors
+      );
     });
   };
 
@@ -349,69 +378,20 @@ export const useIntegrationHelpers = () => {
     position: number,
     configuredProperties: any
   ): Promise<Integration> => {
-    return produce(integration, draft => {
+    return produce(integration, async () => {
       const step: Step = {
         ...stepKind,
         configuredProperties,
+        metadata: { configured: true } as any,
       };
 
-      return setStepInFlow(draft, flowId, step, position);
-    });
-  };
-
-  /**
-   * updates a step of type connection to the provided integration object if
-   * a step exists at the provided `flow` and `position` indexes; a new step is
-   * added otherwise.
-   *
-   * @param integration - the integration object to modify
-   * @param connection - the connection object that's been used to set up the
-   * step
-   * @param action - the action that's been used to set up the step
-   * @param flowId - the zero-based index of the flow where to add the step
-   * @param position - the zero-based index of the steps where to add the step
-   * @param configuredProperties - the values configured by the user for the step
-   *
-   * @todo perhaps rename it with a better name
-   * @todo should we check `flow` and `position` to see if they are valid?
-   */
-  const updateOrAddConnection = async (
-    integration: Integration,
-    connection: Connection,
-    action: Action,
-    flowId: string,
-    position: number,
-    configuredProperties: any
-  ): Promise<Integration> => {
-    const actionDescriptor = await getActionDescriptor(
-      connection.id!,
-      action.id!,
-      configuredProperties
-    );
-    return produce(integration, draft => {
-      const step: Step = {
-        action,
-        configuredProperties,
-        connection,
-        id: flowId,
-      };
-      if (actionDescriptor) {
-        step.action!.descriptor = actionDescriptor;
-      }
-      step.stepKind = 'endpoint';
-      draft.flows = draft.flows!.map(f => {
-        if (f.id === flowId) {
-          if (f.steps![position]) {
-            f.steps![position] = step;
-          } else {
-            f.steps!.splice(position, 0, step);
-            draft.tags = Array.from(
-              new Set([...(draft.tags || []), connection.id!])
-            );
-          }
-        }
-        return f;
-      });
+      return setStepInFlow(
+        integration,
+        flowId,
+        step,
+        position,
+        fetchStepDescriptors
+      );
     });
   };
 
@@ -426,20 +406,23 @@ export const useIntegrationHelpers = () => {
   const saveIntegration = async (
     integration: Integration
   ): Promise<Integration> => {
-    const response = await callFetch({
-      body: integration,
-      headers: apiContext.headers,
-      method: integration.id ? 'PUT' : 'POST',
-      url: integration.id
-        ? `${apiContext.apiUri}/integrations/${integration.id}`
-        : `${apiContext.apiUri}/integrations`,
+    return produce(integration, async () => {
+      const sanitizedIntegration = prepareIntegrationForSaving(integration);
+      const response = await callFetch({
+        body: sanitizedIntegration,
+        headers: apiContext.headers,
+        method: sanitizedIntegration.id ? 'PUT' : 'POST',
+        url: sanitizedIntegration.id
+          ? `${apiContext.apiUri}/integrations/${sanitizedIntegration.id}`
+          : `${apiContext.apiUri}/integrations`,
+      });
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      return !sanitizedIntegration.id
+        ? ((await response.json()) as Integration)
+        : Promise.resolve(sanitizedIntegration);
     });
-    if (!response.ok) {
-      throw new Error(response.statusText);
-    }
-    return !integration.id
-      ? ((await response.json()) as Integration)
-      : Promise.resolve(integration);
   };
 
   /**
@@ -459,6 +442,21 @@ export const useIntegrationHelpers = () => {
     });
   };
 
+  const removeStep = async (
+    integration: Integration,
+    flowId: string,
+    position: number
+  ) => {
+    return produce(integration, () => {
+      return removeStepFromFlow(
+        integration,
+        flowId,
+        position,
+        fetchStepDescriptors
+      );
+    });
+  };
+
   return {
     addConnection,
     addStep,
@@ -469,13 +467,13 @@ export const useIntegrationHelpers = () => {
     getActionDescriptor,
     getDeployment,
     importIntegration,
+    removeStep,
     replaceDraft,
     saveIntegration,
     setAttributes,
     tagIntegration,
     undeployIntegration,
     updateConnection,
-    updateOrAddConnection,
     updateStep,
   };
 };

@@ -4,13 +4,14 @@ import { Connector } from '@syndesis/models';
 import { IConnectorConfigurationFormValidationResult } from '@syndesis/ui';
 import {
   allFieldsRequired,
-  applyInitialValues,
   getRequiredStatusText,
   toFormDefinition,
   validateRequiredProperties,
 } from '@syndesis/utils';
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { parseValidationResult } from '../utils';
 
 export interface IWithConnectorFormChildrenProps {
   /**
@@ -101,131 +102,88 @@ export interface IWithConnectorFormProps {
  * @see [moreConfigurationSteps]{@link IWithConnectorFormProps#moreConfigurationSteps}
  * @see [values]{@link IWithConnectorFormProps#values}
  */
-export class WithConnectorForm extends React.Component<
+export const WithConnectorForm: React.FunctionComponent<
   IWithConnectorFormProps
-> {
-  public static defaultProps = {
-    initialValue: {},
-  };
+> = ({ connector, disabled, initialValue = {}, onSave, children }) => {
+  const { t } = useTranslation('shared');
+  const [
+    isValidatingAgainstBackend,
+    setIsValidatingAgainstBackend,
+  ] = React.useState(false);
+  const [validationResults, setValidationResults] = React.useState<
+    IConnectorConfigurationFormValidationResult[]
+  >([]);
 
-  public render() {
-    const definition = Object.keys(this.props.connector.properties!).reduce(
-      (def, key) => {
-        const d = this.props.connector.properties![key];
-        def[key] = {
-          ...d,
-          disabled: this.props.disabled,
+  const definition = Object.keys(connector.properties!).reduce((def, key) => {
+    const d = connector.properties![key];
+    def[key] = {
+      ...d,
+      disabled,
+    };
+    return def;
+  }, {});
+  return (
+    <WithConnectionHelpers>
+      {({ validateConfiguration }) => {
+        const validateFormAgainstBackend = async (values: {
+          [key: string]: string;
+        }) => {
+          setIsValidatingAgainstBackend(true);
+          const status = await validateConfiguration(connector.id!, values);
+          setIsValidatingAgainstBackend(false);
+          setValidationResults(parseValidationResult(status, connector.name));
         };
-        return def;
-      },
-      {}
-    );
-    return (
-      <WithConnectionHelpers>
-        {({ validateConfiguration }) => {
-          let validationResults: IConnectorConfigurationFormValidationResult[] = [];
-          const validateFormAgainstBackend = async (values: {
-            [key: string]: string;
-          }) => {
-            validationResults = [];
-            const errors: { [key: string]: string } = {};
-            const status = await validateConfiguration(
-              this.props.connector.id!,
-              values
-            );
-            (
-              (
-                status.find(obj => obj.scope === 'PARAMETERS') || {
-                  errors: [],
-                }
-              ).errors || []
-            ).forEach(obj => {
-              obj.parameters.forEach(p => (errors[p] = obj.description));
-            });
-            validationResults = (
-              (
-                status.find(obj => obj.scope === 'CONNECTIVITY') || {
-                  errors: [],
-                }
-              ).errors || []
-            ).map(
-              obj =>
-                ({
-                  message: obj.description,
-                  type: 'error',
-                } as IConnectorConfigurationFormValidationResult)
-            );
-            if (Object.keys(errors).length) {
-              throw errors;
-            }
-            if (validationResults.length === 0) {
-              validationResults = [
-                {
-                  message: `${
-                    this.props.connector.name
-                  } has been successfully validated`,
-                  type: 'success',
-                } as IConnectorConfigurationFormValidationResult,
-              ];
-            }
-            return validationResults;
-          };
-          const initialValue = applyInitialValues(
+        const requiredPrompt = getRequiredStatusText(
+          definition,
+          i18n.t('shared:AllFieldsRequired'),
+          i18n.t('shared:FieldsMarkedWithStarRequired'),
+          ''
+        );
+        const validator = (values: IFormValue) =>
+          validateRequiredProperties(
             definition,
-            this.props.initialValue!
+            (name: string) => `${name} is required`,
+            values
           );
-          const requiredPrompt = getRequiredStatusText(
-            definition,
-            i18n.t('shared:AllFieldsRequired'),
-            i18n.t('shared:FieldsMarkedWithStarRequired'),
-            ''
-          );
-          return (
-            <AutoForm<IFormValue>
-              i18nRequiredProperty={'* Required field'}
-              definition={toFormDefinition(definition)}
-              i18nFieldsStatusText={requiredPrompt}
-              allFieldsRequired={allFieldsRequired(definition)}
-              initialValue={initialValue!}
-              validate={(values: IFormValue) =>
-                validateRequiredProperties(
-                  definition,
-                  (name: string) => `${name} is required`,
-                  values
-                )
-              }
-              onSave={this.props.onSave}
-            >
-              {({
+        return (
+          <AutoForm<IFormValue>
+            i18nRequiredProperty={t('shared:requiredFieldMessage')}
+            definition={toFormDefinition(definition)}
+            i18nFieldsStatusText={requiredPrompt}
+            allFieldsRequired={allFieldsRequired(definition)}
+            initialValue={initialValue!}
+            validate={validator}
+            validateInitial={validator}
+            onSave={onSave}
+          >
+            {({
+              fields,
+              handleSubmit,
+              isSubmitting,
+              dirty,
+              isValid,
+              isValidating,
+              resetForm,
+              submitForm,
+              values,
+            }) => {
+              return children({
+                dirty,
                 fields,
                 handleSubmit,
                 isSubmitting,
-                dirty,
                 isValid,
-                isValidating,
+                isValidating: isValidating || isValidatingAgainstBackend,
                 resetForm,
                 submitForm,
-                validateForm,
+                validateForm: () => validateFormAgainstBackend(values),
+                validationResults,
                 values,
-              }) => {
-                return this.props.children({
-                  dirty,
-                  fields,
-                  handleSubmit,
-                  isSubmitting,
-                  isValid,
-                  isValidating,
-                  resetForm,
-                  submitForm,
-                  validateForm: () => validateFormAgainstBackend(values),
-                  validationResults,
-                  values,
-                });
-              }}
-            </AutoForm>
-          );
-        }}
-      </WithConnectionHelpers>
-    );
-  }
-}
+              });
+            }}
+          </AutoForm>
+        );
+      }}
+    </WithConnectionHelpers>
+  );
+};

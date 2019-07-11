@@ -10,7 +10,7 @@
   "deleteModalMessage": "Are you sure you want to delete the \"{{name}}\" API client connector?",
   "deleteModalTitle": "Confirm Delete?",
   "detailsApiConnectorTip": "View API connector details",
-  "emptyStateInfo": "There are no currently available API connectors. Please click on the button below to create one.",
+  "emptyStateInfo": "There are no currently available API connectors. Click the button below to create one.",
   "errorDeletingApiConnector": "Unexpected server error deleting API client connector \"{{connectorId}}\".",
   "errorSavingApiConnector": "Unexpected server error saving the API client connector.",
   "Host": "Host",
@@ -24,5 +24,50 @@
   "reviewValidationFallback": "No connector details are currently available.",
   "reviewWarningsHeading": "Warnings {{count}}",
   "usedByOne": "Used by 1 integration",
-  "usedByMulti": "Used by integrations {{count}} times"
+  "usedByMulti": "Used by integrations {{count}} times",
+  "create": {
+    "unsavedChangesTitle": "Do you really want to cancel?",
+    "unsavedChangesMessage": "You have not finished creating the API client connector. If you cancel now you will lose data you already entered. Do you still want to cancel?",
+    "selectMethod": {
+      "dndUploadFailedMessage": " could not be uploaded",
+      "dndUploadSuccessMessage": "Process file ",
+      "dndFileExtensions": ".json,.yaml,.yml",
+      "dndHelpMessage": "Accepted file type: .json, .yaml, and .yml",
+      "dndInstructions": "Drag and drop a file here, or <strong>click</strong> to select a file by using a file chooser dialog.",
+      "dndNoFileSelectedLabel": "No file selected",
+      "dndSelectedFileLabel": "Selected file:",
+      "methodFromFile": "Upload an OpenAPI file",
+      "methodFromScratch": "Create from scratch",
+      "methodFromUrl": "Use a URL",
+      "title": "Upload OpenAPI Document",
+      "urlNote": "* Note: After uploading this document, updates to it are not automatically obtained."
+    },
+    "review": {
+      "btnReviewEdit": "Review/Edit",
+      "description": "This description has not yet been actually defined, please send help.",
+      "descriptionLabel": "Description",
+      "nameLabel": "Name",
+      "operations": "operations",
+      "sectionApiDefinition": "API DEFINITION",
+      "sectionImported": "IMPORTED",
+      "sectionWarnings": "WARNINGS",
+      "title": "Review Actions"
+    },
+    "specification": {
+      "title": "Edit API Definition"
+    },
+    "security": {
+      "accessTokenUrl": "Access Token URL",
+      "authorizationUrl": "Authorization URL",
+      "authTypeLabel": "Authentication Type",
+      "noSecurity": "No Security",
+      "required": "All fields are required.",
+      "title": "Specify Security"
+    },
+    "details": {
+      "title": "Review/Edit Connector Details",
+      "saveButton": "Create API Connector",
+      "successNotification": "API Connector successfully created"
+    }
+  }
 }

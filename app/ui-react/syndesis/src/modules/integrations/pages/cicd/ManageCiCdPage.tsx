@@ -1,4 +1,5 @@
 import { WithEnvironmentHelpers, WithEnvironments } from '@syndesis/api';
+import { IEnvironment } from '@syndesis/api/src';
 import {
   Breadcrumb,
   CiCdList,
@@ -10,7 +11,6 @@ import {
   IFilterType,
   ISortType,
   TagNameValidationError,
-  toTestId,
 } from '@syndesis/ui';
 import { WithListViewToolbarHelpers, WithLoader } from '@syndesis/utils';
 import * as React from 'react';
@@ -21,23 +21,25 @@ import { ApiError, PageTitle } from '../../../../shared';
 import resolvers from '../../resolvers';
 
 function getFilteredAndSortedEnvironments(
-  environments: string[],
+  environments: IEnvironment[],
   activeFilters: IActiveFilter[],
-  currentSortType: string,
+  currentSortType: ISortType,
   isSortAscending: boolean
 ) {
   let answer = environments;
   activeFilters.forEach((filter: IActiveFilter) => {
     const valueToLower = filter.value.toLowerCase();
-    answer = answer.filter(name => name.toLowerCase().includes(valueToLower));
+    answer = answer.filter(({ name }) =>
+      name.toLowerCase().includes(valueToLower)
+    );
   });
-  answer = answer.sort((a, b) => {
+  answer = answer.sort(({ name: a }, { name: b }) => {
     const left = isSortAscending ? a : b;
     const right = isSortAscending ? b : a;
     return left.localeCompare(right);
   });
-  return answer.map(name => ({
-    i18nUsesText: '',
+  return answer.map(({ name, uses }) => ({
+    i18nUsesText: i18n.t('integrations:UsedByNIntegrations', { uses }),
     name,
   }));
 }
@@ -78,15 +80,15 @@ export class ManageCiCdPage extends React.Component<{}, IManageCiCdPageState> {
     return (
       <Translation ns={['integrations', 'shared']}>
         {t => (
-          <WithEnvironments>
-            {({ data, hasData, error, read }) => (
+          <WithEnvironments withUses={true}>
+            {({ data, hasData, error, errorMessage, read }) => (
               <WithListViewToolbarHelpers
                 defaultFilterType={filterByName}
                 defaultSortType={sortByName}
               >
                 {helpers => {
                   const filteredAndSortedEnvironments = getFilteredAndSortedEnvironments(
-                    data,
+                    data as IEnvironment[],
                     helpers.activeFilters,
                     helpers.currentSortType,
                     helpers.isSortAscending
@@ -117,10 +119,7 @@ export class ManageCiCdPage extends React.Component<{}, IManageCiCdPageState> {
                           <PageTitle title={t('integrations:ManageCiCd')} />
                           <Breadcrumb>
                             <Link
-                              data-testid={toTestId(
-                                'ManageCiCdPage',
-                                'integrations-link'
-                              )}
+                              data-testid={'manage-cicd-page-integrations-link'}
                               to={resolvers.list()}
                             >
                               {t('shared:Integrations')}
@@ -195,7 +194,9 @@ export class ManageCiCdPage extends React.Component<{}, IManageCiCdPageState> {
                                 loaderChildren={
                                   <CiCdList children={<CiCdListSkeleton />} />
                                 }
-                                errorChildren={<ApiError />}
+                                errorChildren={
+                                  <ApiError error={errorMessage!} />
+                                }
                               >
                                 {() => (
                                   <>

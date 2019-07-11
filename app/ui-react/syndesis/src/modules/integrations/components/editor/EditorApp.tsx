@@ -1,12 +1,12 @@
 /* tslint:disable:object-literal-sort-keys */
+import { NEW_INTEGRATION_ID } from '@syndesis/api';
 import * as H from '@syndesis/history';
 import { Integration } from '@syndesis/models';
 import * as React from 'react';
 import { EditSpecificationPage } from './apiProvider/EditSpecificationPage';
 import { ReviewActionsPage } from './apiProvider/ReviewActionsPage';
-import { ReviewOperationsPage } from './apiProvider/ReviewOperationsPage';
 import { SelectMethodPage } from './apiProvider/SelectMethodPage';
-import { SetInfoPage } from './apiProvider/SetInfoPage';
+import { ChoiceStepPage } from './choice/ChoiceStepPage';
 import { DataMapperPage } from './dataMapper/DataMapperPage';
 import { EditorRoutes } from './EditorRoutes';
 import { EditorSidebar } from './EditorSidebar';
@@ -14,14 +14,15 @@ import { ConfigureActionPage } from './endpoint/ConfigureActionPage';
 import { DescribeDataShapePage } from './endpoint/DescribeDataShapePage';
 import { SelectActionPage } from './endpoint/SelectActionPage';
 import {
+  IBaseFlowRouteParams,
+  IBaseRouteState,
   IConfigureActionRouteParams,
   IConfigureActionRouteState,
   IDescribeDataShapeRouteParams,
   IDescribeDataShapeRouteState,
+  IPageWithEditorBreadcrumb,
   ISelectConnectionRouteParams,
   ISelectConnectionRouteState,
-  ITemplateStepRouteParams,
-  ITemplateStepRouteState,
   stepRoutes,
 } from './interfaces';
 import { makeEditorResolvers } from './makeEditorResolvers';
@@ -30,7 +31,7 @@ import { SelectConnectionPage } from './SelectConnectionPage';
 import { ConfigureStepPage } from './step/ConfigureStepPage';
 import { TemplateStepPage } from './template/TemplateStepPage';
 
-export interface IEditorApp {
+export interface IEditorApp extends IPageWithEditorBreadcrumb {
   mode: 'adding' | 'editing';
   appStepRoutes: typeof stepRoutes;
   appResolvers: ReturnType<typeof makeEditorResolvers>;
@@ -40,8 +41,9 @@ export interface IEditorApp {
   ) => H.LocationDescriptor;
   postConfigureHref: (
     integration: Integration,
-    p: ITemplateStepRouteParams | IConfigureActionRouteParams,
-    s: ITemplateStepRouteState | IConfigureActionRouteState
+    p: IBaseFlowRouteParams,
+    s: IBaseRouteState,
+    isApiProvider?: boolean
   ) => H.LocationDescriptorObject;
 }
 
@@ -51,13 +53,13 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
   appResolvers,
   cancelHref,
   postConfigureHref,
+  getBreadcrumb,
 }) => {
   const selectStepChildren = (
     <SelectConnectionPage
       cancelHref={cancelHref}
       apiProviderHref={(step, params, state) =>
-        appResolvers.apiProvider.editSpecification({
-          step,
+        appResolvers.apiProvider.selectMethod({
           ...params,
           ...state,
         })
@@ -71,6 +73,13 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
       }
       filterHref={(step, params, state) =>
         appResolvers.basicFilter({
+          step,
+          ...params,
+          ...state,
+        })
+      }
+      choiceHref={(step, params, state) =>
+        appResolvers.choice({
           step,
           ...params,
           ...state,
@@ -100,6 +109,8 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
       sidebar={props => (
         <EditorSidebar {...props} isAdding={mode === 'adding'} />
       )}
+      getBreadcrumb={getBreadcrumb}
+      isAdding={mode === 'adding'}
     />
   );
 
@@ -116,6 +127,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
           ...s,
         })
       }
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
@@ -124,7 +136,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
       backHref={(p, s) => appResolvers.connection.selectAction({ ...p, ...s })}
       cancelHref={cancelHref}
       mode={mode}
-      nextStepHref={(p, s) =>
+      nextPageHref={(p, s) =>
         appResolvers.connection.configureAction({
           ...p,
           ...s,
@@ -148,6 +160,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
           );
         }
       }}
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
@@ -181,6 +194,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
               s as IConfigureActionRouteState
             )
       }
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
@@ -192,6 +206,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
         <EditorSidebar {...props} isAdding={mode === 'adding'} />
       )}
       postConfigureHref={postConfigureHref}
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
@@ -203,6 +218,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
         <EditorSidebar {...props} isAdding={mode === 'adding'} />
       )}
       postConfigureHref={postConfigureHref}
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
@@ -214,6 +230,7 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
         <EditorSidebar {...props} isAdding={mode === 'adding'} />
       )}
       postConfigureHref={postConfigureHref}
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
@@ -225,55 +242,126 @@ export const EditorApp: React.FunctionComponent<IEditorApp> = ({
         <EditorSidebar {...props} isAdding={mode === 'adding'} />
       )}
       postConfigureHref={postConfigureHref}
+      getBreadcrumb={getBreadcrumb}
+    />
+  );
+
+  const choicePage = (
+    <ChoiceStepPage
+      cancelHref={cancelHref}
+      mode={mode}
+      sidebar={props => (
+        <EditorSidebar {...props} isAdding={mode === 'adding'} />
+      )}
+      postConfigureHref={postConfigureHref}
+      getBreadcrumb={getBreadcrumb}
+    />
+  );
+
+  const selectMethodPage = (
+    <SelectMethodPage
+      cancelHref={(params, state) =>
+        appResolvers.selectStep({ ...params, ...state })
+      }
+      getReviewHref={(specification, params, state) =>
+        appResolvers.apiProvider.reviewActions({
+          specification,
+          ...params,
+          ...state,
+        })
+      }
+      getEditorHref={(specification, params, state) =>
+        appResolvers.apiProvider.editSpecification({
+          specification,
+          ...params,
+          ...state,
+        })
+      }
+      getBreadcrumb={getBreadcrumb}
+    />
+  );
+
+  const reviewActionsPage = (
+    <ReviewActionsPage
+      cancelHref={(params, state) =>
+        appResolvers.apiProvider.selectMethod({ ...params, ...state })
+      }
+      editHref={(params, state) =>
+        appResolvers.apiProvider.editSpecification({ ...params, ...state })
+      }
+      nextHref={(integration, params, state) =>
+        postConfigureHref(
+          integration,
+          {
+            ...params,
+            ...state,
+          },
+          state,
+          true
+        )
+      }
+      getBreadcrumb={getBreadcrumb}
+    />
+  );
+
+  const editSpecificationPage = (
+    <EditSpecificationPage
+      cancelHref={(params, state) =>
+        state.integration.id === NEW_INTEGRATION_ID
+          ? appResolvers.apiProvider.selectMethod({ ...params, ...state })
+          : cancelHref(params, state)
+      }
+      saveHref={(params, state) =>
+        appResolvers.apiProvider.reviewActions({ ...params, ...state })
+      }
+      getBreadcrumb={getBreadcrumb}
     />
   );
 
   return (
-    <>
-      <EditorRoutes
-        selectStepPath={appStepRoutes.selectStep}
-        selectStepChildren={selectStepChildren}
-        endpointEditor={{
-          selectActionPath: appStepRoutes.connection.selectAction,
-          selectActionChildren: selectActionPage,
-          configureActionPath: appStepRoutes.connection.configureAction,
-          configureActionChildren: configureActionPage,
-          describeDataPath: appStepRoutes.connection.describeData,
-          describeDataChildren: describeDataShapePage,
-        }}
-        apiProvider={{
-          selectMethodPath: appStepRoutes.apiProvider.selectMethod,
-          selectMethodChildren: <SelectMethodPage />,
-          reviewActionsPath: appStepRoutes.apiProvider.reviewActions,
-          reviewActionsChildren: <ReviewActionsPage />,
-          editSpecificationPath: appStepRoutes.apiProvider.editSpecification,
-          editSpecificationChildren: <EditSpecificationPage />,
-          setInfoPath: appStepRoutes.apiProvider.setInfo,
-          setInfoChildren: <SetInfoPage />,
-          reviewOperationsPath: appStepRoutes.apiProvider.reviewOperations,
-          reviewOperationsChildren: <ReviewOperationsPage />,
-        }}
-        template={{
-          templatePath: appStepRoutes.template,
-          templateChildren: templateStepPage,
-        }}
-        dataMapper={{
-          mapperPath: appStepRoutes.dataMapper,
-          mapperChildren: dataMapperPage,
-        }}
-        basicFilter={{
-          basicFilterPath: appStepRoutes.basicFilter,
-          basicFilterChildren: basicFilterPage,
-        }}
-        step={{
-          configurePath: appStepRoutes.step,
-          configureChildren: configureStepPage,
-        }}
-        extension={{
-          configurePath: appStepRoutes.extension,
-          configureChildren: configureStepPage,
-        }}
-      />
-    </>
+    <EditorRoutes
+      selectStepPath={appStepRoutes.selectStep}
+      selectStepChildren={selectStepChildren}
+      endpointEditor={{
+        selectActionPath: appStepRoutes.connection.selectAction,
+        selectActionChildren: selectActionPage,
+        configureActionPath: appStepRoutes.connection.configureAction,
+        configureActionChildren: configureActionPage,
+        describeDataPath: appStepRoutes.connection.describeData,
+        describeDataChildren: describeDataShapePage,
+      }}
+      apiProvider={{
+        selectMethodPath: appStepRoutes.apiProvider.selectMethod,
+        selectMethodChildren: selectMethodPage,
+        reviewActionsPath: appStepRoutes.apiProvider.reviewActions,
+        reviewActionsChildren: reviewActionsPage,
+        editSpecificationPath: appStepRoutes.apiProvider.editSpecification,
+        editSpecificationChildren: editSpecificationPage,
+      }}
+      template={{
+        templatePath: appStepRoutes.template,
+        templateChildren: templateStepPage,
+      }}
+      dataMapper={{
+        mapperPath: appStepRoutes.dataMapper,
+        mapperChildren: dataMapperPage,
+      }}
+      basicFilter={{
+        basicFilterPath: appStepRoutes.basicFilter,
+        basicFilterChildren: basicFilterPage,
+      }}
+      choice={{
+        choicePath: appStepRoutes.choice,
+        choiceChildren: choicePage,
+      }}
+      step={{
+        configurePath: appStepRoutes.step,
+        configureChildren: configureStepPage,
+      }}
+      extension={{
+        configurePath: appStepRoutes.extension,
+        configureChildren: configureStepPage,
+      }}
+    />
   );
 };

@@ -1,6 +1,10 @@
+// tslint:disable react-unused-props-and-state
+// remove the above line after this goes GA https://github.com/Microsoft/tslint-microsoft-contrib/pull/824
 import { ListViewItem } from 'patternfly-react';
 import * as React from 'react';
-import { toTestId } from '../../../utils';
+import { toValidHtmlId } from '../../../helpers';
+
+import './SchemaNodeListItem.css';
 
 export interface ISchemaNodeListItemProps {
   name: string;
@@ -14,36 +18,25 @@ export interface ISchemaNodeListItemProps {
   ) => void;
 }
 
-export interface ISchemaNodeListItemState {
-  itemSelected: boolean;
-}
+export const SchemaNodeListItem: React.FunctionComponent<
+  ISchemaNodeListItemProps
+> = props => {
 
-export class SchemaNodeListItem extends React.Component<
-  ISchemaNodeListItemProps,
-  ISchemaNodeListItemState
-> {
-  public constructor(props: ISchemaNodeListItemProps) {
-    super(props);
-    this.state = {
-      itemSelected: props.selected, // initial item selection
-    };
-    this.handleCheckboxToggle = this.handleCheckboxToggle.bind(this);
-  }
+  const [itemSelected, setItemSelected] = React.useState(props.selected);
 
-  public handleCheckboxToggle = (connectionName: string, nodePath: string) => (
+  const doToggleCheckbox = (connectionName: string, nodePath: string) => (
     event: any
   ) => {
-    this.setState({
-      itemSelected: !this.state.itemSelected,
-    });
-    this.props.onSelectionChanged(
+    setItemSelected(!itemSelected);
+
+    props.onSelectionChanged(
       connectionName,
       nodePath,
-      !this.state.itemSelected
+      !itemSelected
     );
   };
 
-  public schemaDisplayPath(schemaPath: string) {
+  const schemaDisplayPath = (schemaPath: string) => {
     let result = '';
     schemaPath
       .split('/')
@@ -51,30 +44,28 @@ export class SchemaNodeListItem extends React.Component<
     return result;
   }
 
-  public render() {
-    return (
-      <ListViewItem
-        heading={this.props.name}
-        description={this.schemaDisplayPath(this.props.schemaPath)}
-        checkboxInput={
-          <input
-            data-testid={`${toTestId(
-              'SchemaNodeListItem',
-              this.props.name,
-              'selected-input'
-            )}`}
-            type="checkbox"
-            value=""
-            defaultChecked={this.props.selected}
-            onChange={this.handleCheckboxToggle(
-              this.props.connectionName,
-              this.props.schemaPath
-            )}
-          />
-        }
-        hideCloseIcon={true}
-        stacked={false}
-      />
-    );
-  }
+  return (
+    <ListViewItem
+      data-testid={`schema-node-list-item-${toValidHtmlId(
+        props.name
+      )}-list-item`}
+      heading={props.name}
+      className={'schema-node-list-item'}
+      description={schemaDisplayPath(props.schemaPath)}
+      checkboxInput={
+        <input
+          data-testid={'schema-node-list-item-selected-input'}
+          type="checkbox"
+          value=""
+          defaultChecked={props.selected}
+          onChange={doToggleCheckbox(
+            props.connectionName,
+            props.schemaPath
+          )}
+        />
+      }
+      hideCloseIcon={true}
+      stacked={false}
+    />
+  );
 }

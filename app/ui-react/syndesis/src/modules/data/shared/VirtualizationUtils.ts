@@ -41,7 +41,9 @@ export function getPreviewVdbName(): string {
 export function getViewDdl(vdbModel: RestVdbModel, viewName: string): string {
   const views = vdbModel.keng__ddl.split('CREATE VIEW ');
   if (views.length > 0) {
-    const viewDdl = views.find(view => view.startsWith(viewName));
+    const viewDdl = views.find(
+      view => view.startsWith(viewName) || view.startsWith('"' + viewName)
+    );
     if (viewDdl) {
       return 'CREATE VIEW ' + viewDdl;
     }
@@ -162,23 +164,32 @@ export function generateSchemaNodeInfos(
  */
 export function generateViewEditorState(
   serviceVdbName: string,
-  schemaNodeInfo: SchemaNodeInfo,
+  schemaNodeInfo: SchemaNodeInfo[],
   vwName: string,
   vwDescription?: string
 ): ViewEditorState {
-  const srcPaths: string[] = [
-    'connection=' +
-      schemaNodeInfo.connectionName +
-      '/' +
-      schemaNodeInfo.sourcePath,
-  ];
+  const srcPaths: string[] = loadPaths(schemaNodeInfo);
   return getViewEditorState(
     serviceVdbName,
     vwName,
     PROJECTED_COLS_ALL,
     srcPaths,
+    false,
     vwDescription
   );
+}
+
+function loadPaths(schemaNodeInfo: SchemaNodeInfo[]): string[] {
+  const srcPaths: string[] = [];
+
+  let index = 0;
+  schemaNodeInfo.map(
+    item =>
+      (srcPaths[index++] =
+        'connection=' + item.connectionName + '/' + item.sourcePath)
+  );
+
+  return srcPaths;
 }
 
 /**
@@ -204,7 +215,8 @@ export function generateViewEditorStates(
         serviceVdbName,
         viewInfo.viewName,
         PROJECTED_COLS_ALL,
-        srcPaths
+        srcPaths,
+        false
       )
     );
   }
@@ -218,6 +230,7 @@ export function generateViewEditorStates(
  * @param name the view name
  * @param projectedCols projected columns for the view
  * @param srcPaths paths for the sources used in the view
+ * @param userDefined specifies if the ddl has been altered from defaults
  * @param description the (optional) view description
  * @param viewDdl the (optional) view DDL
  */
@@ -226,6 +239,7 @@ function getViewEditorState(
   name: string,
   projectedCols: ProjectedColumn[],
   srcPaths: string[],
+  userDefined: boolean,
   description?: string,
   viewDdl?: string
 ) {
@@ -234,6 +248,7 @@ function getViewEditorState(
     compositions: [],
     ddl: viewDdl ? viewDdl : '',
     isComplete: true,
+    isUserDefined: userDefined,
     keng__description: description ? description : '',
     projectedColumns: projectedCols,
     sourcePaths: srcPaths,
@@ -253,11 +268,13 @@ function getViewEditorState(
  * @param conns the connections
  * @param virtualizationsSourceStatuses the available virtualization sources
  * @param selectedConn name of a selected connection
+ * @param activeOnly (optional) true - return only active connections
  */
 export function generateDvConnections(
   conns: Connection[],
   virtualizationsSourceStatuses: VirtualizationSourceStatus[],
-  selectedConn: string
+  selectedConn: string,
+  activeOnly = false
 ): Connection[] {
   const dvConns: Connection[] = [];
   for (const conn of conns) {
@@ -278,7 +295,11 @@ export function generateDvConnections(
       selectionState = DvConnectionSelection.SELECTED;
     }
     conn.options = { dvStatus: connStatus, dvSelected: selectionState };
-    dvConns.push(conn);
+    if (!activeOnly) {
+      dvConns.push(conn);
+    } else if (connStatus === DvConnectionStatus.ACTIVE) {
+      dvConns.push(conn);
+    }
   }
   return dvConns;
 }
@@ -312,10 +333,43 @@ export function isDvConnectionSelected(conn: Connection) {
 }
 
 /**
+ * Get the OData url from the virtualization, if available
+ * @param virtualization the RestDataService
+ */
+export function getOdataUrl(virtualization: RestDataService): string {
+  return virtualization.odataHostName
+    ? 'https://' + virtualization.odataHostName + '/odata'
+    : '';
+}
+
+/**
+ * Construct the pod build log url from the supplied info
+ * @param consoleUrl the console url
+ * @param namespace namespace of the DV pod
+ * @param publishPodName name of the DV pod
+ */
+export function getPodLogUrl(
+  consoleUrl: string,
+  namespace?: string,
+  publishPodName?: string
+): string {
+  return namespace && publishPodName
+    ? consoleUrl +
+        '/project/' +
+        namespace +
+        '/browse/pods/' +
+        publishPodName +
+        '?tab=logs'
+    : '';
+}
+
+/**
  * Get publishing state details for the specified virtualization
+ * @param consoleUrl the console url
  * @param virtualization the RestDataService
  */
 export function getPublishingDetails(
+  consoleUrl: string,
   virtualization: RestDataService
 ): VirtualizationPublishingDetails {
   // Determine published state
@@ -345,8 +399,12 @@ export function getPublishingDetails(
     default:
       break;
   }
-  if (virtualization.publishLogUrl) {
-    publishStepDetails.logUrl = virtualization.publishLogUrl;
+  if (virtualization.publishPodName) {
+    publishStepDetails.logUrl = getPodLogUrl(
+      consoleUrl,
+      virtualization.podNamespace,
+      virtualization.publishPodName
+    );
   }
   return publishStepDetails;
 }
@@ -356,7 +414,24 @@ export function getPublishingDetails(
  * @param viewDefinition the ViewDefinition
  */
 export function getPreviewSql(viewDefinition: ViewDefinition): string {
-  // TODO: This assumes a single source view.  Will need to expand capability later
+  if (viewDefinition.ddl) {
+    // Remove extra whitespaces, tabs and line feeds
+    const trimmedSql: string = viewDefinition.ddl
+      .replace(/\s+/g, ' ')
+      .replace(/^\s|\s$/g, '');
+    // Split the DDL string by the AS SELECT segment
+    const ddlFragments = trimmedSql.split('AS SELECT ');
+    // If the string array is > 1 prepend the remaining SQL statement to the SELECT
+    if (ddlFragments.length > 1) {
+      return 'SELECT ' + ddlFragments[1];
+    }
+    // TODO: More complex SQL may contain inner joins and SELECT statements, so we'll
+    // need to expand this to more complicated cases.
+  }
+
+  // If no DDL is found then we assume a simple single source view
+  // and use the select * from sourceTableName
+  // TODO:  address multiple source tables
   const sourcePath = viewDefinition.sourcePaths[0];
   if (sourcePath) {
     return 'SELECT * FROM ' + getPreviewTableName(sourcePath) + ';';
@@ -371,12 +446,9 @@ export function getPreviewSql(viewDefinition: ViewDefinition): string {
  */
 function getPreviewTableName(sourcePath: string): string {
   // Assemble the name, utilizing the schema model suffix
-  return (
-    getConnectionName(sourcePath).toLowerCase() +
-    SCHEMA_MODEL_SUFFIX +
-    '.' +
-    getNodeName(sourcePath)
-  );
+  return `"${getConnectionName(
+    sourcePath
+  ).toLowerCase()}${SCHEMA_MODEL_SUFFIX}"."${getNodeName(sourcePath)}"`;
 }
 
 /**

@@ -100,6 +100,113 @@ install_syndesis_crd() {
     fi
 }
 
+# Install maven mirror
+install_maven_mirror() {
+    local project=$(oc project --short=true)
+    recreate_project "nexus"
+
+    oc new-app sonatype/nexus >/dev/null 2>&1
+    oc expose svc/nexus >/dev/null 2>&1
+
+    oc set probe dc/nexus \
+        --liveness \
+        --failure-threshold 3 \
+        --initial-delay-seconds 30 \
+        -- echo ok >/dev/null 2>&1
+	oc set probe dc/nexus \
+        --readiness \
+        --failure-threshold 3 \
+        --initial-delay-seconds 30 \
+        --get-url=http://:8081/nexus/content/groups/public >/dev/null 2>&1
+    oc set volume dc/nexus --add \
+        --name 'nexus-volume-1' \
+        --type 'pvc' \
+        --mount-path '/sonatype-work/' \
+        --claim-name 'nexus-pv' \
+        --claim-size '2G' \
+        --overwrite >/dev/null 2>&1
+
+    wait_for_deployments 1 nexus
+
+    nexus_host=$(oc get routes nexus -o=jsonpath='{.spec.host}')
+
+    echo "Setting up jboss-ea and redhat-ga proxies..."
+
+    curl -X POST \
+        http://${nexus_host}/nexus/service/local/repositories \
+        -H 'authorization: Basic YWRtaW46YWRtaW4xMjM=' \
+        -H 'cache-control: no-cache' \
+        -H 'content-type: application/json' \
+        -d '{"data":{"repoType":"proxy","id":"jboss-ea","name":"JBoss Early Access","browseable":true,"indexable":true,
+        "notFoundCacheTTL":1440,"artifactMaxAge":-1,"metadataMaxAge":1440,"itemMaxAge":1440,"repoPolicy":"RELEASE",
+        "provider":"maven2","providerRole":"org.sonatype.nexus.proxy.repository.Repository","downloadRemoteIndexes":true,
+        "autoBlockActive":true,"fileTypeValidation":true,"exposed":true,"checksumPolicy":"WARN",
+        "remoteStorage":{"remoteStorageUrl":"https://repository.jboss.org/nexus/content/groups/ea/","authentication":null,
+        "connectionSettings":null}}}' \
+        >/dev/null 2>&1
+
+    curl -X POST \
+        http://${nexus_host}/nexus/service/local/repositories \
+        -H 'authorization: Basic YWRtaW46YWRtaW4xMjM=' \
+        -H 'cache-control: no-cache' \
+        -H 'content-type: application/json' \
+        -d '{"data":{"repoType":"proxy","id":"redhat-ga","name":"Red Hat General Availability Repository","browseable":true,"indexable":true,
+        "notFoundCacheTTL":1440,"artifactMaxAge":-1,"metadataMaxAge":1440,"itemMaxAge":1440,"repoPolicy":"RELEASE",
+        "provider":"maven2","providerRole":"org.sonatype.nexus.proxy.repository.Repository","downloadRemoteIndexes":true,
+        "autoBlockActive":true,"fileTypeValidation":true,"exposed":true,"checksumPolicy":"WARN",
+        "remoteStorage":{"remoteStorageUrl":"https://maven.repository.redhat.com/ga/","authentication":null,
+        "connectionSettings":null}}}' \
+        >/dev/null 2>&1
+
+    curl -X POST \
+        http://${nexus_host}/nexus/service/local/repositories \
+        -H 'authorization: Basic YWRtaW46YWRtaW4xMjM=' \
+        -H 'cache-control: no-cache' \
+        -H 'content-type: application/json' \
+        -d '{"data":{"repoType":"proxy","id":"atlassian-public","name":"Atlassian Public","browseable":true,"indexable":true,
+        "notFoundCacheTTL":1440,"artifactMaxAge":-1,"metadataMaxAge":1440,"itemMaxAge":1440,"repoPolicy":"RELEASE",
+        "provider":"maven2","providerRole":"org.sonatype.nexus.proxy.repository.Repository","downloadRemoteIndexes":true,
+        "autoBlockActive":true,"fileTypeValidation":true,"exposed":true,"checksumPolicy":"WARN",
+        "remoteStorage":{"remoteStorageUrl":"https://packages.atlassian.com/maven-external","authentication":null,
+        "connectionSettings":null}}}' \
+        >/dev/null 2>&1
+
+    curl -X PUT \
+        http://${nexus_host}/nexus/service/local/repo_groups/public \
+        -H 'authorization: Basic YWRtaW46YWRtaW4xMjM=' \
+        -H 'cache-control: no-cache' \
+        -H 'content-type: application/json' \
+        -H 'postman-token: eaa6b07c-87ac-53c5-1ab6-aa585ae9ee3c' \
+        -d '{"data":{"id":"public","name":"Public Repositories","format":"maven2","exposed":true,"provider":"maven2",
+        "repositories":[{"id":"releases"},{"id":"snapshots"},{"id":"thirdparty"},{"id":"central"},{"id":"jboss-ea"},
+        {"id":"redhat-ga"},{"id":"atlassian-public"}]}}' \
+        >/dev/null 2>&1
+
+    oc project "${project}"
+
+    echo "Optionally set MAVEN_MIRROR_URL with:"
+    echo "export MAVEN_MIRROR_URL=\"http://${nexus_host}/nexus/content/groups/public/\""
+}
+
+# Determine maven mirror url
+maven_mirror_url() {
+    local maven_mirror="${MAVEN_MIRROR_URL:-unknown}"
+    if [ "${maven_mirror}" == "unknown" ]; then
+        project=$(oc project --short=true)
+        if oc get project "nexus" >/dev/null 2>&1 ; then
+            oc project "nexus" >/dev/null 2>&1
+            nexus_host=$(oc get routes nexus -o=jsonpath='{.spec.host}')
+            oc project "${project}" >/dev/null 2>&1
+            echo "http://${nexus_host}/nexus/content/groups/public/"
+            return
+        fi
+        echo "ERROR: Could not automatically determine MAVEN_MIRROR_URL, please make sure you run "
+        echo "'syndesis install --maven-mirror' or set maven mirror manually."
+        return
+    fi
+    echo "${maven_mirror}"
+}
+
 # Deploy operator
 deploy_syndesis_operator() {
     local operator_installed=$(oc get dc -o name | grep syndesis-operator)
@@ -111,9 +218,6 @@ deploy_syndesis_operator() {
 
     local result=$(create_openshift_resource "install/operator/deploy/syndesis-operator.yml")
     check_error $result
-    if [ $(hasflag --local) ]; then
-        patch_for_using_template_from_configmap
-    fi
 }
 
 # Create syndesis resource
@@ -197,6 +301,17 @@ EOT
         syndesis="${syndesis}${extra}"
     fi
 
+    local datavirt=$(hasflag --datavirt)
+    if [ -n "${datavirt}" ]; then
+        extra=$(cat <<EOT
+
+  addons:
+    komodo:
+EOT
+)
+        syndesis="${syndesis}${extra}"
+    fi
+
     echo "$syndesis" | cat | oc create -f -
     if [ $? -ne 0 ]; then
         echo "ERROR: Error while creating resource"
@@ -242,21 +357,117 @@ rules:
   - syndesis.io
   resources:
   - "*"
-  - "*/finalisers"
-  verbs:
-  - "*"
+  - "*/finalizers"
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - configmaps
+  - secrets
+  - serviceaccounts
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs: [ get ]
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  - replicationcontrollers/scale
+  - replicationcontrollers/status
+  verbs: [ get, list, create, update, delete, deletecollection, watch ]
+- apiGroups:
+  - ""
+  - build.openshift.io
+  resources:
+  - builds
+  - buildconfigs
+  - builds/details
+  - buildconfigs/webhooks
+  - buildconfigs/instantiatebinary
+  - builds/log
+  verbs: [ get, list, create, update, delete, deletecollection, watch ]
+- apiGroups:
+  - ""
+  - apps.openshift.io
+  resources:
+  - deploymentconfigs
+  - deploymentconfigs/scale
+  verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+- apiGroups:
+  - ""
+  - apps.openshift.io
+  resources:
+  - deploymentconfigrollbacks
+  - deploymentconfigs/instantiate
+  - deploymentconfigs/rollback
+  verbs: [ create ]
+- apiGroups:
+  - ""
+  - apps.openshift.io
+  resources:
+  - deploymentconfigs/log
+  - deploymentconfigs/status
+  verbs: [ get, list, watch ]
+- apiGroups:
+  - ""
+  - image.openshift.io
+  resources:
+  - imagestreams
+  - imagestreamimages
+  - imagestreammappings
+  - imagestreams/secrets
+  - imagestreamtags
+  verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+- apiGroups:
+  - ""
+  - image.openshift.io
+  resources:
+  - imagestreams/status
+  - imagestreamimports
+  verbs: [ get, list, watch ]
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs: [ get, list ]
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - ""
+  - template.openshift.io
+  resources:
+  - processedtemplates
+  - templateconfigs
+  - templateinstances
+  - templates
+  verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+- apiGroups:
+  - authorization.openshift.io
+  resources:
+  - rolebindings
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
 - apiGroups:
   - route.openshift.io
   resources:
+  - routes
   - routes/custom-host
-  verbs:
-  - "*"
+  verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
 - apiGroups:
   - camel.apache.org
   resources:
   - "*"
-  verbs:
-  - "*"
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
 - apiGroups:
   - monitoring.coreos.com
   resources:
@@ -264,24 +475,22 @@ rules:
   - prometheuses
   - servicemonitors
   - prometheusrules
-  verbs:
-  - "*"
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
 - apiGroups:
   - integreatly.org
   resources:
   - grafanadashboards
-  verbs:
-  - "*"
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
 - apiGroups:
-    - serving.knative.dev
+  - serving.knative.dev
   resources:
-    - services
-  verbs: [ get, list, watch ]
+  - services
+  verbs: [ get, list, watch]
 - apiGroups:
-    - eventing.knative.dev
+  - eventing.knative.dev
   resources:
-    - channels
-  verbs: [ get, list, watch ]
+  - channels
+  verbs: [ get, list, watch]
 ---
 EOT
         if [ $? -ne 0 ]; then
@@ -338,6 +547,7 @@ create_or_delete_openshift_resource() {
         fi
     else
         local url="https://raw.githubusercontent.com/syndesisio/syndesis/${tag:-master}/${resource}"
+
         if [ -z "$parameters" ]; then
             result=$(oc $what -f $url >$ERROR_FILE 2>&1)
         else
@@ -481,56 +691,4 @@ compare_oc_version() {
     done
 
     echo "OK"
-}
-
-
-patch_for_using_template_from_configmap() {
-  # we need to include the `syndesis-template.yml` akka `syndesis.yml` in
-  # the operator image, this adds a ConfigMap that we mount into the
-  # operator container
-  oc delete configmap syndesis-template >/dev/null 2>&1
-  oc create configmap syndesis-template --from-file=template=$(appdir "install")/syndesis.yml
-  local patch=$(cat <<EOT
-  {
-    "spec": {
-      "template": {
-        "spec": {
-          "containers": [
-            {
-              "name": "syndesis-operator",
-              "command": [
-                "syndesis-operator",
-                "--template",
-                "/conf/syndesis-template.yml"
-              ],
-              "volumeMounts": [
-                {
-                  "mountPath": "/conf",
-                  "name": "syndesis-template-config"
-                }
-              ]
-            }
-          ],
-          "volumes": [
-            {
-              "configMap": {
-                "name": "syndesis-template",
-                "items": [
-                  {
-                    "key": "template",
-                    "path": "syndesis-template.yml"
-                  }
-                ]
-              },
-              "name": "syndesis-template-config"
-            }
-          ]
-        }
-      }
-    }
-  }
-EOT
-)
-  oc patch deploymentconfig syndesis-operator -p "$patch"
-
 }

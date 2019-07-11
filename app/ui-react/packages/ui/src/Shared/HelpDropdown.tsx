@@ -4,15 +4,19 @@ import {
   DropdownItem,
   DropdownPosition,
   DropdownToggle,
+  KebabToggle,
 } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 import classNames from 'classnames';
 import * as React from 'react';
-import { toTestId } from '../utils';
 
 export interface IHelpDropdownProps {
+  additionalDropdownItems?: React.ReactNode[];
   className?: string;
+  isTabletView: boolean;
   isOpen: boolean;
+  dropdownDirection?: keyof typeof DropdownDirection;
+  dropdownPosition?: keyof typeof DropdownPosition;
   launchAboutModal: () => void;
   launchSupportPage: () => void;
   launchSampleIntegrationTutorials: () => void;
@@ -52,20 +56,20 @@ export class HelpDropdown extends React.Component<
   public render() {
     const { isOpen } = this.state;
     const {
+      additionalDropdownItems = [],
+      dropdownDirection,
+      dropdownPosition,
       launchSampleIntegrationTutorials,
       launchUserGuide,
       launchConnectorsGuide,
       launchSupportPage,
       launchContactUs,
       launchAboutModal,
+      isTabletView,
     } = this.props;
     const dropdownItems = [
       <DropdownItem
-        data-testid={`${toTestId(
-          'HelpDropdown',
-          'integration-tutorials',
-          'dropdown-item'
-        )}`}
+        data-testid={'help-dropdown-integration-tutorials-dropdown-item'}
         key="sampleIntegrationTutorials"
         component="a"
         onClick={launchSampleIntegrationTutorials}
@@ -73,11 +77,7 @@ export class HelpDropdown extends React.Component<
         Sample Integration Tutorials
       </DropdownItem>,
       <DropdownItem
-        data-testid={`${toTestId(
-          'HelpDropdown',
-          'user-guide',
-          'dropdown-item'
-        )}`}
+        data-testid={'help-dropdown-user-guide-dropdown-item'}
         key="userGuide"
         component="a"
         onClick={launchUserGuide}
@@ -85,11 +85,7 @@ export class HelpDropdown extends React.Component<
         User Guide
       </DropdownItem>,
       <DropdownItem
-        data-testid={`${toTestId(
-          'HelpDropdown',
-          'connectors-guide',
-          'dropdown-item'
-        )}`}
+        data-testid={'help-dropdown-connectors-guide-dropdown-item'}
         key="connectorsGuide"
         component="a"
         onClick={launchConnectorsGuide}
@@ -97,7 +93,7 @@ export class HelpDropdown extends React.Component<
         Connectors Guide
       </DropdownItem>,
       <DropdownItem
-        data-testid={`${toTestId('HelpDropdown', 'support', 'dropdown-item')}`}
+        data-testid={'help-dropdown-support-dropdown-item'}
         key="support"
         component="a"
         onClick={launchSupportPage}
@@ -105,11 +101,7 @@ export class HelpDropdown extends React.Component<
         Support
       </DropdownItem>,
       <DropdownItem
-        data-testid={`${toTestId(
-          'HelpDropdown',
-          'contact-us',
-          'dropdown-item'
-        )}`}
+        data-testid={'help-dropdown-contact-us-dropdown-item'}
         key="contactUs"
         component="a"
         onClick={launchContactUs}
@@ -117,33 +109,47 @@ export class HelpDropdown extends React.Component<
         Contact Us
       </DropdownItem>,
       <DropdownItem
-        data-testid={`${toTestId('HelpDropdown', 'about', 'dropdown-item')}`}
+        data-testid={'help-dropdown-about-dropdown-item'}
         key="action"
         component="a"
-        onClick={launchAboutModal}
+        onClick={ev => {
+          ev.preventDefault();
+          launchAboutModal();
+        }}
       >
         About
       </DropdownItem>,
     ];
+    const dropdownId = 'helpDropdownButton';
     return (
       <>
         <Dropdown
-          direction={DropdownDirection.down}
-          position={DropdownPosition.right}
+          direction={dropdownDirection || DropdownDirection.down}
+          position={dropdownPosition || DropdownPosition.right}
           onSelect={this.onSelect}
           toggle={
-            <DropdownToggle
-              id="helpDropdownButton"
-              className={classNames('', this.props.className)}
-              iconComponent={null}
-              onToggle={this.onToggle}
-            >
-              <HelpIcon />
-            </DropdownToggle>
+            isTabletView ? (
+              <KebabToggle
+                id={dropdownId}
+                data-testid={dropdownId}
+                className={classNames('', this.props.className)}
+                onToggle={this.onToggle}
+              />
+            ) : (
+              <DropdownToggle
+                id={dropdownId}
+                data-testid={dropdownId}
+                className={classNames('', this.props.className)}
+                onToggle={this.onToggle}
+                iconComponent={null}
+              >
+                <HelpIcon />
+              </DropdownToggle>
+            )
           }
           isOpen={isOpen}
           isPlain={true}
-          dropdownItems={dropdownItems}
+          dropdownItems={[...dropdownItems, ...additionalDropdownItems]}
         />
       </>
     );

@@ -1,6 +1,6 @@
-import { getConnectionIcon, WithConnectionHelpers } from '@syndesis/api';
+import { WithConnectionHelpers } from '@syndesis/api';
 import * as H from '@syndesis/history';
-import { ConnectionOverview } from '@syndesis/models';
+import { IConnectionOverview } from '@syndesis/models';
 import {
   ConnectionCard,
   ConnectionsGrid,
@@ -11,16 +11,17 @@ import { WithLoader } from '@syndesis/utils';
 import * as React from 'react';
 import { Translation } from 'react-i18next';
 import { UIContext } from '../../../app';
-import { ApiError } from '../../../shared';
+import { ApiError, EntityIcon } from '../../../shared';
 
 export interface IConnectionsProps {
   error: boolean;
+  errorMessage?: string;
   includeConnectionMenu: boolean;
   loading: boolean;
-  connections: ConnectionOverview[];
+  connections: IConnectionOverview[];
 
-  getConnectionHref(connection: ConnectionOverview): H.LocationDescriptor;
-  getConnectionEditHref?(connection: ConnectionOverview): H.LocationDescriptor;
+  getConnectionHref(connection: IConnectionOverview): H.LocationDescriptor;
+  getConnectionEditHref?(connection: IConnectionOverview): H.LocationDescriptor;
 }
 
 export class Connections extends React.Component<IConnectionsProps> {
@@ -69,7 +70,9 @@ export class Connections extends React.Component<IConnectionsProps> {
                               ))}
                             </>
                           }
-                          errorChildren={<ApiError />}
+                          errorChildren={
+                            <ApiError error={this.props.errorMessage!} />
+                          }
                         >
                           {() =>
                             this.props.connections.map((c, index) => {
@@ -77,42 +80,26 @@ export class Connections extends React.Component<IConnectionsProps> {
                                 doDelete(c.id!, c.name); // must have an ID if deleting
                               };
 
-                              const configurationRequired =
-                                c.board &&
-                                (c.board!.notices ||
-                                  c.board!.warnings ||
-                                  c.board!.errors)! > 0;
-
-                              const isTechPreview =
-                                c.connector! && c.connector!.metadata!
-                                  ? c.connector!.metadata!['tech-preview'] ===
-                                    'true'
-                                  : false;
-
                               return (
                                 <ConnectionsGridCell key={index}>
                                   <ConnectionCard
                                     name={c.name}
-                                    configurationRequired={
-                                      configurationRequired
-                                    }
                                     description={c.description || ''}
                                     icon={
-                                      // dirty hack to handle connection-like objects coming from the editor
-                                      c.icon &&
-                                      c.icon.includes(process.env.PUBLIC_URL)
-                                        ? c.icon
-                                        : getConnectionIcon(
-                                            process.env.PUBLIC_URL,
-                                            c
-                                          )
+                                      <EntityIcon
+                                        entity={c}
+                                        alt={c.name}
+                                        width={46}
+                                      />
                                     }
                                     href={this.props.getConnectionHref(c)}
                                     i18nCannotDelete={t('cannotDelete')}
-                                    i18nConfigurationRequired={t(
+                                    i18nConfigRequired={t(
                                       'configurationRequired'
                                     )}
                                     i18nTechPreview={t('techPreview')}
+                                    isConfigRequired={c.isConfigRequired}
+                                    isTechPreview={c.isTechPreview}
                                     menuProps={
                                       this.props.includeConnectionMenu
                                         ? {
@@ -138,7 +125,6 @@ export class Connections extends React.Component<IConnectionsProps> {
                                           }
                                         : undefined
                                     }
-                                    techPreview={isTechPreview}
                                     techPreviewPopoverHtml={
                                       <span
                                         dangerouslySetInnerHTML={{

@@ -5,7 +5,7 @@ import {
   WithActionDescriptor,
 } from '@syndesis/api';
 import * as H from '@syndesis/history';
-import { Action, ConnectionOverview } from '@syndesis/models';
+import { Action, IConnectionOverview } from '@syndesis/models';
 import { PageSectionLoader } from '@syndesis/ui';
 import { WithLoader } from '@syndesis/utils';
 import * as React from 'react';
@@ -22,7 +22,7 @@ export interface IOnUpdatedIntegrationProps {
    * true if the configuration is not complete because there are other steps,
    * false otherwise.
    * If true the form should be re-rendered with an incremented
-   * [configurationStep]{@link IWithConfigurationFormProps#configurationStep}.
+   * [configurationPage]{@link IWithConfigurationFormProps#configurationPage}.
    */
   moreConfigurationSteps: boolean;
   /**
@@ -37,7 +37,7 @@ export interface IWithConfigurationFormProps {
    * [actionId]{@link IWithConfigurationFormProps#actionId}. Used to retrieve
    * the form definition.
    */
-  connection: ConnectionOverview;
+  connection: IConnectionOverview;
   /**
    * the ID of the action that needs to be configured.
    */
@@ -48,7 +48,7 @@ export interface IWithConfigurationFormProps {
    * for actions whose configuration must be performed in multiple steps,
    * indicates the current step.
    */
-  configurationStep: number;
+  configurationPage: number;
   /**
    * the values to assign to the form once rendered. These can come either from
    * an existing integration or from the [onUpdatedIntegration]{@link IWithConfigurationFormProps#onUpdatedIntegration}
@@ -86,14 +86,14 @@ export const WithConfigurationForm: React.FunctionComponent<
     <WithActionDescriptor
       connectionId={props.connection.id!}
       actionId={action.id!}
-      configuredProperties={{}}
+      configuredProperties={props.initialValue || {}}
     >
-      {({ data, hasData, error }) => (
+      {({ data, hasData, error, errorMessage }) => (
         <WithLoader
           error={error}
           loading={!hasData}
           loaderChildren={<PageSectionLoader />}
-          errorChildren={<ApiError />}
+          errorChildren={<ApiError error={errorMessage!} />}
         >
           {() => (
             <ConfigurationForm action={action} descriptor={data} {...props}>

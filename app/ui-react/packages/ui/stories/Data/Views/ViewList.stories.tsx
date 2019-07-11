@@ -56,7 +56,6 @@ const createView = 'Create View';
 const createViewTip = 'Create a new view';
 const importViews = 'Import Data Source';
 const importViewsTip = 'Import data source';
-const importActionText = 'Import View';
 
 const hasViewsTestNotes =
   '- Verify toolbar is displayed\n' +
@@ -135,7 +134,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}
@@ -167,7 +170,6 @@ stories
             'Filter by Name...'
           )}
           i18nResultsCount={text('i18nResultsCount', '0 Results')}
-          onImportView={action(importActionText)}
           children={[]}
           hasListData={false}
         />
@@ -187,7 +189,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}
@@ -222,7 +228,6 @@ stories
             'i18nResultsCount',
             viewItems.length + ' Results'
           )}
-          onImportView={action(importActionText)}
           children={viewItems}
           hasListData={true}
         />

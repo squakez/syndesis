@@ -20,7 +20,7 @@
 
   <groupId>io.syndesis.extension</groupId>
   <artifactId>extension-bom</artifactId>
-  <version>1.7-SNAPSHOT</version>
+  <version>1.8-SNAPSHOT</version>
   <name>Extension :: Bill of Materials (BOM)</name>
   <description>Syndesis :: ${project.name}</description>
 
@@ -28,7 +28,7 @@
 
   <properties>
     <spring-boot.version>1.5.13.RELEASE</spring-boot.version>
-    <camel.version>2.21.0.fuse-740013</camel.version>
+    <camel.version>2.21.0.fuse-740028</camel.version>
   </properties>
 
     <!-- Metadata need to publish to central -->
@@ -63,6 +63,7 @@
   <distributionManagement>
     <snapshotRepository>
       <id>oss-sonatype-staging</id>
+      <name>oss-sonatype-staging</name>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
     <repository>

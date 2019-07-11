@@ -86,7 +86,11 @@ public interface EMailConstants extends StringConstants {
                 return null;
             }
 
-            return valueOf(name.toUpperCase(Locale.ENGLISH));
+            try {
+                return valueOf(name.toUpperCase(Locale.ENGLISH));
+            } catch (IllegalArgumentException ex) {
+                return null;
+            }
         }
 
         public static Protocol toSecureProtocol(String name) {
@@ -95,7 +99,15 @@ public interface EMailConstants extends StringConstants {
             }
 
             Protocol p = getValueOf(name);
-            return p.isSecure() ? p : getValueOf(name + "s");
+            return p.toSecureProtocol();
+        }
+
+        public Protocol toSecureProtocol() {
+            if (isSecure()) {
+                return this;
+            }
+
+            return getValueOf(id() + "s");
         }
 
         public String id() {
@@ -145,27 +157,6 @@ public interface EMailConstants extends StringConstants {
 
         public String id() {
             return this.id;
-        }
-    }
-
-    enum EMailFunction {
-        READ("read"),
-        SEND("send");
-
-        private final String id;
-        private final String connectorId;
-
-        EMailFunction(String id) {
-            this.id = id;
-            this.connectorId = "email-" + id + "-connector";
-        }
-
-        public String id() {
-            return id;
-        }
-
-        public String connectorId() {
-            return connectorId;
         }
     }
 

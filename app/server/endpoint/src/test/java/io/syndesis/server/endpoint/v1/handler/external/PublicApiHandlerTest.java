@@ -75,6 +75,7 @@ public class PublicApiHandlerTest {
     private static final String ENVIRONMENT2 = "new-" + ENVIRONMENT;
     private static final String NAME_PROPERTY = "name";
     private static final String INTEGRATION_ID_PROPERTY = "integrationId";
+    public static final String RENAMED_SUFFIX = "-renamed";
 
     private final DataManager dataManager = mock(DataManager.class);
     private final IntegrationSupportHandler supportHandler = mock(IntegrationSupportHandler.class);
@@ -137,9 +138,12 @@ public class PublicApiHandlerTest {
         doAnswer(invocation -> deploymentBuilder.targetState(targetState = IntegrationDeploymentState.Published).build())
                 .when(deploymentHandler).update(any(), any());
 
-        handler = new PublicApiHandler(dataManager, supportHandler,
-                encryptionComponent, integrationHandler, deploymentHandler, connectionHandler, monitoringProvider);
+        handler = new PublicApiHandler(dataManager, encryptionComponent, deploymentHandler, connectionHandler,
+                monitoringProvider);
+        handler.setIntegrationHandler(integrationHandler);
+        handler.setIntegrationSupportHandler(supportHandler);
     }
+
 
     @Test
     public void testGetReleaseEnvironments() {
@@ -149,6 +153,17 @@ public class PublicApiHandlerTest {
         assertThat(environments, hasItem(ENVIRONMENT));
 
         verify(dataManager).fetchAll(eq(Integration.class));
+    }
+
+    @Test
+    public void testAddNewEnvironment() {
+        handler.addNewEnvironment(ENVIRONMENT2);
+        final List<String> environments = handler.getReleaseEnvironments();
+
+        assertThat(environments, is(notNullValue()));
+        assertThat(environments, hasItem(ENVIRONMENT2));
+
+        verify(dataManager, times(2)).fetchAll(eq(Integration.class));
     }
 
     @Test
@@ -254,8 +269,29 @@ public class PublicApiHandlerTest {
         assertThat(releaseTags, notNullValue());
         assertThat(releaseTags.isEmpty(), is(true));
 
+        // create an unassigned environment and delete it
+        handler.addNewEnvironment(ENVIRONMENT2);
+        handler.deleteEnvironment(ENVIRONMENT2);
+
         verify(dataManager).update(any(Integration.class));
         verify(dataManager).fetch(Integration.class, INTEGRATION_ID);
+    }
+
+    @Test
+    public void testRenameEnvironment() {
+        handler.renameEnvironment(ENVIRONMENT, ENVIRONMENT + RENAMED_SUFFIX);
+        List<String> environments = handler.getReleaseEnvironments();
+
+        assertThat(environments, notNullValue());
+        assertThat(environments, hasItem(ENVIRONMENT + RENAMED_SUFFIX));
+
+        // do the same for an unassigned environment
+        handler.addNewEnvironment(ENVIRONMENT2);
+        handler.renameEnvironment(ENVIRONMENT2, ENVIRONMENT2 + RENAMED_SUFFIX);
+        environments = handler.getReleaseEnvironments();
+
+        assertThat(environments, notNullValue());
+        assertThat(environments, hasItem(ENVIRONMENT2 + RENAMED_SUFFIX));
     }
 
     @Test

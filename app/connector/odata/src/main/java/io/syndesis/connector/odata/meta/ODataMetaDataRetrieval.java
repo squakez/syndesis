@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.extension.MetaDataExtension;
+import org.apache.camel.util.ObjectHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.module.jsonSchema.JsonSchema;
 import com.fasterxml.jackson.module.jsonSchema.factories.JsonSchemaFactory;
@@ -34,6 +35,7 @@ import io.syndesis.common.util.Json;
 import io.syndesis.connector.odata.ODataConstants;
 import io.syndesis.connector.odata.meta.ODataMetadata.PropertyMetadata;
 import io.syndesis.connector.odata.meta.ODataMetadata.PropertyMetadata.TypeClass;
+import io.syndesis.connector.support.util.ConnectorOptions;
 import io.syndesis.connector.support.verifier.api.ComponentMetadataRetrieval;
 import io.syndesis.connector.support.verifier.api.PropertyPair;
 import io.syndesis.connector.support.verifier.api.SyndesisMetadata;
@@ -53,31 +55,37 @@ public class ODataMetaDataRetrieval extends ComponentMetadataRetrieval implement
     @SuppressWarnings({"PMD"})
     @Override
     protected SyndesisMetadata adapt(CamelContext context, String componentId, String actionId, Map<String, Object> properties, MetaDataExtension.MetaData metadata) {
-            ODataMetadata odataMetadata = (ODataMetadata) metadata.getPayload();
-            Map<String, List<PropertyPair>> enrichedProperties = new HashMap<>();
+        ODataMetadata odataMetadata = (ODataMetadata) metadata.getPayload();
+        Map<String, List<PropertyPair>> enrichedProperties = new HashMap<>();
 
-            if (odataMetadata.hasEntityNames()) {
-                List<PropertyPair> resourcesResult = new ArrayList<>();
-                odataMetadata.getEntityNames().stream().forEach(
-                    t -> resourcesResult.add(new PropertyPair(t, t))
-                );
-                enrichedProperties.put(RESOURCE_PATH, resourcesResult);
-            }
+        if (odataMetadata.hasEntityNames()) {
+            List<PropertyPair> resourcesResult = new ArrayList<>();
+            odataMetadata.getEntityNames().stream().forEach(
+                t -> resourcesResult.add(new PropertyPair(t, t))
+            );
+            enrichedProperties.put(RESOURCE_PATH, resourcesResult);
+        }
 
-            //
-            // Do things differently depending on which action is being sought
-            //
-            if (actionId.endsWith(Methods.READ.connectorId())) {
-                return genReadDataShape(odataMetadata, properties, enrichedProperties);
-            } else if(actionId.endsWith(Methods.CREATE.connectorId())) {
+        //
+        // Do things differently depending on which action is being sought
+        //
+        Methods method = Methods.methodForAction(actionId);
+        switch (method) {
+            case READ:
+                if (actionId.endsWith(FROM)) {
+                    return genReadFromDataShape(odataMetadata, properties, enrichedProperties);
+                } else {
+                    return genReadToShape(odataMetadata, enrichedProperties);
+                }
+            case CREATE:
                 return genCreateDataShape(odataMetadata, enrichedProperties);
-            } else if (actionId.endsWith(Methods.DELETE.connectorId())) {
+            case DELETE:
                 return genDeleteDataShape(enrichedProperties, actionId);
-            } else if (actionId.endsWith(Methods.PATCH.connectorId())) {
+            case PATCH:
                 return genPatchDataShape(odataMetadata, enrichedProperties, actionId);
-            }
+        }
 
-            return SyndesisMetadata.of(enrichedProperties);
+        return SyndesisMetadata.of(enrichedProperties);
     }
 
     private SyndesisMetadata createSyndesisMetadata(
@@ -106,7 +114,7 @@ public class ODataMetaDataRetrieval extends ComponentMetadataRetrieval implement
     }
 
     private boolean isSplit(Map<String, Object> properties) {
-        Object splitProp = properties.get(SPLIT_RESULT);
+        Object splitProp = ConnectorOptions.extractOption(properties, SPLIT_RESULT);
         return splitProp != null && Boolean.parseBoolean(splitProp.toString());
     }
 
@@ -177,7 +185,7 @@ public class ODataMetaDataRetrieval extends ComponentMetadataRetrieval implement
      * - In has NO shape
      * - Out has the json entity schema
      */
-    private SyndesisMetadata genReadDataShape(ODataMetadata odataMetadata,
+    private SyndesisMetadata genReadFromDataShape(ODataMetadata odataMetadata,
                                               Map<String, Object> basicProperties,
                                               Map<String, List<PropertyPair>> enrichedProperties) {
         ObjectSchema entitySchema = createEntitySchema();
@@ -192,11 +200,11 @@ public class ODataMetaDataRetrieval extends ComponentMetadataRetrieval implement
         // If a key predicate is used then only one entity is expected to be returned
         // hence an array schema is not required.
         //
-        boolean hasKeyPredicate = basicProperties.containsKey(KEY_PREDICATE);
+        Object keyPredicate = ConnectorOptions.extractOption(basicProperties, KEY_PREDICATE);
         boolean isSplit = isSplit(basicProperties);
 
         if (! entitySchema.getProperties().isEmpty()) {
-            if (hasKeyPredicate || isSplit) {
+            if (ObjectHelper.isNotEmpty(keyPredicate) || isSplit) {
                 //
                 // A split will mean that the schema is no longer an array schema
                 //
@@ -208,6 +216,35 @@ public class ODataMetaDataRetrieval extends ComponentMetadataRetrieval implement
                 applyEntitySchemaSpecification(collectionSchema, outDataShapeBuilder);
             }
         }
+        return createSyndesisMetadata(enrichedProperties, inDataShapeBuilder, outDataShapeBuilder);
+    }
+
+    /*
+     * Producer-version of READ
+     */
+    private SyndesisMetadata genReadToShape(ODataMetadata odataMetadata, Map<String, List<PropertyPair>> enrichedProperties) {
+        //
+        // Need to add a KEY_PREDICATE to the json schema to allow identification
+        // of the entity to be patched.
+        //
+        ObjectSchema entityInSchema = createEntitySchema();
+        entityInSchema.putProperty(KEY_PREDICATE, factory.stringSchema());
+
+        DataShape.Builder inDataShapeBuilder = new DataShape.Builder()
+            .kind(DataShapeKinds.JSON_SCHEMA)
+            .type(entityInSchema.getTitle())
+            .name("Entity Properties")
+            .specification(serializeSpecification(entityInSchema));
+
+        ObjectSchema entityOutSchema = createEntitySchema();
+        populateEntitySchema(odataMetadata, entityOutSchema);
+
+        DataShape.Builder outDataShapeBuilder = new DataShape.Builder()
+            .kind(DataShapeKinds.JSON_SCHEMA)
+            .type(entityOutSchema.getTitle());
+
+        applyEntitySchemaSpecification(entityOutSchema,  outDataShapeBuilder);
+
         return createSyndesisMetadata(enrichedProperties, inDataShapeBuilder, outDataShapeBuilder);
     }
 

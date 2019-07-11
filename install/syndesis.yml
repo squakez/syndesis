@@ -121,7 +121,6 @@ parameters:
 - description: Volume space available for Meta data, e.g. 512Mi, 2Gi.
   displayName: Meta Volume Capacity
   name: META_VOLUME_CAPACITY
-  required: true
   value: 1Gi
   required: true
 - description: Maximum amount of memory the syndesis-meta service might use.
@@ -503,8 +502,9 @@ objects:
           "baseJSONInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/api/v1/atlas/json/",
           "disableMappingPreviewMode": false
         },
-        "datavirt": { 
-          "dvUrl": "/vdb-builder/v1/"
+        "datavirt": {
+          "dvUrl": "/vdb-builder/v1/",
+          "enabled": ${DATAVIRT_ENABLED}
         },
         "features" : {
           "logging": false
@@ -562,9 +562,41 @@ objects:
         GRANT ALL PRIVILEGES ON DATABASE sampledb to sampledb;
       EOF
       psql -d sampledb -U sampledb <<'EOF'
+        CREATE SCHEMA AUTHORIZATION sampledb;
         CREATE TABLE IF NOT EXISTS contact (first_name VARCHAR, last_name VARCHAR, company VARCHAR, lead_source VARCHAR, create_date DATE);
         INSERT INTO contact VALUES ('Joe','Jackson','Red Hat','db',current_timestamp);
         CREATE TABLE IF NOT EXISTS todo (id SERIAL PRIMARY KEY, task VARCHAR, completed INTEGER);
+        CREATE TABLE IF NOT EXISTS winelist (id SERIAL PRIMARY KEY, wine VARCHAR, price INTEGER, year INTEGER, gws INTEGER, ci VARCHAR, nbj INTEGER, productcode VARCHAR, pricebookentryid VARCHAR);
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (42,'Abreu Vineyard, Las Posadas, Howell Mountain',275,2013,9802,'B',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (91,'Araujo Estate, Eisele Vineyard Cabernet Sauvignon, Napa Valley',499,2015,9728,'C+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (99,'Aubert Wines, Ritchie Vineyard Chardonnay, White, Sonoma Coast',225,2015,9717,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (88,'Bond Estates, Pluribus Red, Napa Valley', 410,2015,9729,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (33,'Cayuse Vineyards, Bionic Frog Syrah, Walla Walla Valley',280,2010,9817,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (69,'Chappellet, Pritchard Hill Cabernet Sauvignon, Napa Valley',239,2014,9748,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (20,'Colgin Cellars, Tychson Hill Vineyard Cabernet Sauvignon, Napa Valley',355,2002,9848,'A+',4) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (72,'Dalla Valle Vineyards, Maya, Napa Valley',489,2013,974,'A',4) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (5, 'Dana Estates, Lotus Vineyard Cabernet Sauvignon, Napa Valley',299,2010,9887,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (17,'Dominus Estate, Christian Moueix, Napa Valley',108,2013,9854,'A',6) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (11,'Dunn Vineyards, Trailer Vineyard Cabernet Sauvignon, Howell Mountain',375,2013,986,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (35,'Futo Estate, 5500 Sld - Cabernet Sauvignon, Stags Leap District',325,2015,9813,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES ( 9,'Harlan Estate, Napa Valley',365,2001,9873,'A+',6) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (48,'Joseph Phelps Vineyards, Insignia, Napa Valley',264,1991,9794,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (27,'Kapcsandy Family Winery, State Lane Vineyard Grand-Vin Cabernet Sauvignon, Napa Valley',129,2015,9841,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (10,'Kongsgaard, The Judge Chardonnay, White, Napa Valley',246,2005,9865,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (65,'Larkmead Vineyards, The Lark Cabernet Sauvignon, Napa Valley',118,2013,9755,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (59,'Lokoya Winery, Mount Veeder Cabernet Sauvignon, Napa Valley',313,2015,977,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (77,'Paul Hobbs, Beckstoffer To Kalon Vineyard Cabernet Sauvignon, Oakville',359,2013,9738,'A',4) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (86,'Peter Michael Winery, Point Rouge Chardonnay, White, Sonoma County',185,2008,9732,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (73,'Promontory, Napa Valley',595,2013,974,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (81,'Quilceda Creek, Cabernet Sauvignon, Columbia Valley',169,2009,9736,'A+',5) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (36,'Ridge Vineyards, Monte Bello, Santa Cruz Mountains',150,2015,9809,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (46,'Scarecrow, Cabernet Sauvignon, Rutherford',440,2014,9796,'A+',4) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (47,'Schrader Cellars, Beckstoffer Las Piedras Vineyard Colesworthy Cabernet Sauvignon, Napa Valley', 69,2013,9794,'A',4) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (04,'Screaming Eagle, Cabernet Sauvignon, Napa Valley', 2660,2010,9905,'A',6) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (71,'Sloan, Proprietary Red, Rutherford',230,2013,9741,'A+',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (93,'Spottswoode, Family Estate Grown Cabernet Sauvignon, St Helena',149,2013,9726,'A',9) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (66,'Verite, Le Desir, Sonoma County',269,2007,9753,'A',3) ON CONFLICT (id) DO NOTHING;
+        INSERT INTO winelist (id, wine, price,year, gws, ci, nbj) VALUES (100,'Continuum, Proprietary Red, Oakville',185,2007,9716,'A+',3) ON CONFLICT (id) DO NOTHING;
         CREATE OR REPLACE FUNCTION add_lead(
           first_and_last_name varchar,
           company varchar,
@@ -1033,9 +1065,9 @@ objects:
     strategy:
       resources:
         limits:
-          memory: "256Mi"
+          memory: "512Mi"
         requests:
-          memory: "20Mi"
+          memory: "40Mi"
       type: Recreate
     template:
       metadata:
@@ -1061,12 +1093,20 @@ objects:
             - --cookie-secret=$(OAUTH_COOKIE_SECRET)
             - --pass-access-token
             - --skip-provider-button
-            - --skip-auth-regex=/logout
-            - --skip-auth-regex=/[^/]+\.(png|jpg|eot|svg|ttf|woff|woff2)
-            - --skip-auth-regex=/api/v1/swagger.*
-            - --skip-auth-regex=/api/v1/index.html
-            - --skip-auth-regex=/api/v1/credentials/callback
-            - --skip-auth-regex=/api/v1/version
+            - '--skip-auth-regex=/api/v1/swagger.*'
+            - '--skip-auth-regex=/api/v1/index.html'
+            - '--skip-auth-regex=/api/v1/credentials/callback'
+            - '--skip-auth-regex=/service-worker.js'
+            - '--skip-auth-regex=/manifest.json'
+            - '--skip-auth-regex=/asset-manifest.json'
+            - '--skip-auth-regex=/precache-manifest.json'
+            - '--skip-auth-regex=/atlasmap.*'
+            - '--skip-auth-regex=/apicurio.*'
+            - '--skip-auth-regex=/favicon.ico'
+            - '--skip-auth-regex=/icons[^/]*'
+            - '--skip-auth-regex=/static[^/]*'
+            - '--skip-auth-regex=/precache-manifest.*.js'
+            - '--skip-auth-regex=/config.json'
             - --skip-auth-preflight
             - --openshift-ca=/etc/pki/tls/certs/ca-bundle.crt
             - --openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -1102,9 +1142,9 @@ objects:
             name: syndesis-oauthproxy-tls
           resources:
             limits:
-              memory: 200Mi
+              memory: 512Mi
             requests:
-              memory: 20Mi
+              memory: 40Mi
         serviceAccountName: syndesis-oauth-client
         volumes:
         - name: syndesis-oauthproxy-tls
@@ -1916,6 +1956,7 @@ objects:
         deploymentMemoryRequestMi: 200
         deploymentMemoryLimitMi: 512
         mavenOptions: "-XX:+UseG1GC -XX:+UseStringDeduplication -Xmx310m"
+        integrationLivenessProbeInitialDelaySeconds: 120
       dao:
         kind: jsondb
       controllers:
@@ -2061,6 +2102,8 @@ objects:
             value: ${POSTGRESQL_USER}
           - name: POSTGRESQL_DATABASE
             value: ${POSTGRESQL_DATABASE}
+          - name: CONTROLLERS_EXPOSE_VIA3SCALE
+            value: ''            
           image: ' '
 
           imagePullPolicy: IfNotPresent
@@ -2242,6 +2285,8 @@ objects:
                 value: syndesis-db
               - name: TODO_DB_NAME
                 value: sampledb
+              - name: TODO_DB_SCHEMA
+                value: sampledb
               - name: TODO_DB_USER
                 value: sampledb
               - name: TODO_DB_PASS
@@ -2275,32 +2320,357 @@ objects:
             kind: ImageStreamTag
             name: todo:latest
         type: ImageChange
-- apiVersion: authorization.openshift.io/v1
-  kind: RoleBinding
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
   metadata:
-    name: syndesis:editors
+    name: syndesis-editor
     labels:
       app: syndesis
       syndesis.io/app: syndesis
       syndesis.io/type: infrastructure
-  roleRef:
-    name: edit
+      syndesis.io/component: syndesis-server
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    - services
+    - endpoints
+    - persistentvolumeclaims
+    - configmaps
+    - secrets
+    - serviceaccounts
+    verbs: [ get, list, create, update, delete, deletecollection, watch ]
+  - apiGroups:
+    - ""
+    resources:
+    - replicationcontrollers
+    - replicationcontrollers/scale
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    - deployments
+    - deployments/scale
+    - replicasets
+    - replicasets/scale
+    - statefulsets
+    - statefulsets/scale
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    - deployments
+    - deployments/rollback
+    - deployments/scale
+    - ingresses
+    - networkpolicies
+    - replicasets
+    - replicasets/scale
+    - replicationcontrollers/scale
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - ""
+    resources:
+    - bindings
+    - events
+    - limitranges
+    - namespaces/status
+    - pods/log
+    - pods/status
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
+    verbs: [ get, list, watch ]
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - buildconfigs
+    - buildconfigs/webhooks
+    - builds
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - builds/clone
+    verbs: [ create ]
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - builds/details
+    verbs: [ update ]
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - builds/log
+    verbs: [ get, list, watch ]
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    resources:
+    - deploymentconfigs
+    - deploymentconfigs/scale
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs/instantiate
+    - deploymentconfigs/rollback
+    verbs: [ create ]
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    resources:
+    - deploymentconfigs/log
+    - deploymentconfigs/status
+    verbs: [ get, list, watch ]
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    resources:
+    - imagestreams
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams/secrets
+    - imagestreamtags
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    resources:
+    - imagestreamimports
+    verbs: [ create ]
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    resources:
+    - imagestreams/status
+    verbs: [ get, list, watch ]
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - ""
+    - template.openshift.io
+    resources:
+    - processedtemplates
+    - templateconfigs
+    - templateinstances
+    - templates
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - buildlogs
+    verbs: [ get, list, create, update, delete, deletecollection, watch, patch ]
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: syndesis-server-editor
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-server
   subjects:
   - kind: ServiceAccount
     name: syndesis-server
-- apiVersion: authorization.openshift.io/v1
-  kind: RoleBinding
+  roleRef:
+    kind: Role
+    name: syndesis-editor
+    apiGroup: rbac.authorization.k8s.io
+
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
   metadata:
-    name: syndesis:viewers
+    name: syndesis-viewer
     labels:
       app: syndesis
       syndesis.io/app: syndesis
       syndesis.io/type: infrastructure
-  roleRef:
-    name: view
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    - endpoints
+    - persistentvolumeclaims
+    - pods
+    - replicationcontrollers
+    - replicationcontrollers/scale
+    - serviceaccounts
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - bindings
+    - events
+    - limitranges
+    - namespaces/status
+    - pods/log
+    - pods/status
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    - deployments
+    - deployments/scale
+    - replicasets
+    - replicasets/scale
+    - statefulsets
+    - statefulsets/scale
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    - deployments
+    - deployments/scale
+    - ingresses
+    - networkpolicies
+    - replicasets
+    - replicasets/scale
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - buildconfigs
+    - buildconfigs/webhooks
+    - builds
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - builds/log
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    resources:
+    - deploymentconfigs
+    - deploymentconfigs/scale
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    resources:
+    - deploymentconfigs/log
+    - deploymentconfigs/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    resources:
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreamtags
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    resources:
+    - imagestreams/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - template.openshift.io
+    resources:
+    - processedtemplates
+    - templateconfigs
+    - templateinstances
+    - templates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
+    - buildlogs
+    verbs:
+    - get
+    - list
+    - watch
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: syndesis-prometheus-viewer
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-prometheus
   subjects:
   - kind: ServiceAccount
     name: syndesis-prometheus
+  roleRef:
+    kind: Role
+    name: syndesis-viewer
+    apiGroup: rbac.authorization.k8s.io
 - apiVersion: v1
   kind: ServiceAccount
   metadata:

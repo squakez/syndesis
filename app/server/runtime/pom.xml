@@ -21,7 +21,7 @@
   <parent>
     <groupId>io.syndesis.server</groupId>
     <artifactId>server-parent</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -46,6 +46,7 @@
     <!-- needed for Spring Social Salesforce fork from mikegirard/spring-social-salesforce -->
     <repository>
       <id>jitpack.io</id>
+      <name>jitpack.io</name>
       <url>https://jitpack.io</url>
     </repository>
 
@@ -172,7 +173,7 @@
             <?m2e ignore ?>
             <id>default-cli</id>
             <goals>
-               <goal>run</goal>
+              <goal>run</goal>
             </goals>
             <phase />
             <configuration>
@@ -226,6 +227,9 @@
                   <schemes>http,https</schemes>
                   <host>localhost:8080</host>
                   <basePath>/api/v1</basePath>
+                  <modelConverters>
+                    <modelConverter>io.syndesis.server.runtime.swagger.KindModelResolver</modelConverter>
+                  </modelConverters>
                   <locations>
                     <location>io.syndesis.server.endpoint.v1.handler.connection</location>
                     <location>io.syndesis.server.endpoint.v1.handler.credential</location>
@@ -241,6 +245,7 @@
                     <location>io.syndesis.server.endpoint.v1.handler.tags</location>
                     <location>io.syndesis.server.endpoint.v1.handler.tests</location>
                     <location>io.syndesis.server.endpoint.v1.handler.user</location>
+                    <location>io.syndesis.server.endpoint.v1.handler.resource</location>
                   </locations>
                   <info>
                     <title>Syndesis API</title>
@@ -797,6 +802,30 @@
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-models</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.kongchen</groupId>
+      <artifactId>swagger-maven-plugin</artifactId>
+      <version>${swagger-maven-plugin.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>

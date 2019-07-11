@@ -20,6 +20,7 @@ const extensions = [
     detailsPageLink={'/extensions/id-0'}
     extensionDescription="id-0 description goes here"
     extensionId={'id-0'}
+    extensionIcon={<div />}
     extensionName={'id-0 name'}
     i18nCancelText={'Cancel'}
     i18nDelete={'Delete'}
@@ -39,6 +40,7 @@ const extensions = [
     key={1}
     detailsPageLink={'/extensions/id-1'}
     extensionId={'id-1'}
+    extensionIcon={<div />}
     extensionName={'id-1 name'}
     i18nCancelText={'Cancel'}
     i18nDelete={'Delete'}
@@ -58,6 +60,7 @@ const extensions = [
     key={2}
     detailsPageLink={'/extensions/id-2'}
     extensionId={'id-2'}
+    extensionIcon={<div />}
     extensionName={'id-2 name'}
     i18nCancelText={'Cancel'}
     i18nDelete={'Delete'}
@@ -143,7 +146,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}
@@ -190,7 +197,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}

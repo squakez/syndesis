@@ -77,6 +77,7 @@ export class DataMapperHostComponent implements OnInit, OnDestroy, OnChanges {
     // initialize config information before initializing services
     const c: ConfigModel = this.initializationService.cfg;
 
+    c.initCfg.classPath = environment.classpath;
     c.initCfg.xsrfCookieName = environment.xsrf.cookieName;
     c.initCfg.xsrfDefaultTokenValue = environment.xsrf.defaultTokenValue;
     c.initCfg.xsrfHeaderName = environment.xsrf.headerName;
@@ -148,6 +149,7 @@ export class DataMapperHostComponent implements OnInit, OnDestroy, OnChanges {
     outputDoc.type = this.outputDocument.documentType;
     outputDoc.inspectionType = this.outputDocument.inspectionType;
     outputDoc.inspectionSource = this.outputDocument.inspectionSource;
+    outputDoc.inspectionResult = this.outputDocument.inspectionResult;
     outputDoc.id = this.outputDocument.id;
     outputDoc.name = this.outputDocument.name;
     outputDoc.description = this.outputDocument.description;
@@ -170,12 +172,11 @@ export class DataMapperHostComponent implements OnInit, OnDestroy, OnChanges {
     }
     c.mappings = mappingDefinition;
 
-    this.saveMappingSubscription = c.mappingService.saveMappingOutput$.subscribe(
-      (saveHandler: Function) => {
+    this.saveMappingSubscription = c.mappingService.mappingUpdated$.subscribe(
+      () => {
         const json = c.mappingService.serializeMappingsToJSON();
         this.modifiedMappings = JSON.stringify(json);
         this.outputMappings.emit(this.modifiedMappings);
-        c.mappingService.handleMappingSaveSuccess(saveHandler);
       }
     );
 

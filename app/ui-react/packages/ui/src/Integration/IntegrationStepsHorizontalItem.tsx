@@ -13,14 +13,14 @@ export interface IIntegrationStepsHorizontalItemProps {
   /**
    * The icon of the step.
    */
-  icon?: string;
+  icon: React.ReactNode;
   title?: string;
   href?: string;
   /**
    * The boolean value that determines if the step
    * is the first in the steps array.
    */
-  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 export class IntegrationStepsHorizontalItem extends React.Component<
@@ -29,13 +29,10 @@ export class IntegrationStepsHorizontalItem extends React.Component<
   public render() {
     return (
       <div className="integration-steps-horizontal-item">
-        {this.props.isFirst === false ? (
-          <Icon name={'angle-right'} className="step-arrow" />
-        ) : null}
         {!this.props.href && (
           <div>
             <div className={'step-icon'} title={this.props.title}>
-              <img src={this.props.icon} />
+              {this.props.icon}
             </div>
             <p>{this.props.name}</p>
           </div>
@@ -44,12 +41,15 @@ export class IntegrationStepsHorizontalItem extends React.Component<
           <Link to={this.props.href}>
             <div>
               <div className={'step-icon'} title={this.props.title}>
-                <img src={this.props.icon} />
+                {this.props.icon}
               </div>
               <p>{this.props.name}</p>
             </div>
           </Link>
         )}
+        {this.props.isLast === false ? (
+          <Icon name={'angle-right'} className="step-arrow" />
+        ) : null}
       </div>
     );
   }

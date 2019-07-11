@@ -19,14 +19,15 @@ function getFilteredAndSortedConnections(
   dvSourceStatuses: VirtualizationSourceStatus[],
   selectedConn: string,
   activeFilters: IActiveFilter[],
-  currentSortType: string,
+  currentSortType: ISortType,
   isSortAscending: boolean
 ) {
   // Connections are adjusted to supply dvStatus and selection
   let filteredAndSortedConnections = generateDvConnections(
     connections,
     dvSourceStatuses,
-    selectedConn
+    selectedConn,
+    true
   );
   activeFilters.forEach((filter: IActiveFilter) => {
     const valueToLower = filter.value.toLowerCase();
@@ -65,13 +66,14 @@ const sortTypes: ISortType[] = [sortByName];
 
 export interface IDvConnectionsWithToolbarProps {
   error: boolean;
+  errorMessage?: string;
   loading: boolean;
   dvSourceStatuses: VirtualizationSourceStatus[];
   onConnectionSelectionChanged: (name: string, selected: boolean) => void;
   children?: any;
 }
 export interface IDvConnectionsWithToolbarState {
-  selectedConnection: any;
+  selectedConnection: string;
 }
 
 export class DvConnectionsWithToolbar extends React.Component<
@@ -90,11 +92,14 @@ export class DvConnectionsWithToolbar extends React.Component<
 
   public handleConnectionSelectionChanged(name: string, selected: boolean) {
     this.props.onConnectionSelectionChanged(name, selected);
+    this.setState({
+      selectedConnection: selected ? name : '',
+    });
   }
 
   public render() {
     return (
-      <Translation ns={['shared']}>
+      <Translation ns={['data', 'shared']}>
         {t => (
           <WithConnections>
             {({ data, hasData, error }) => (
@@ -114,6 +119,12 @@ export class DvConnectionsWithToolbar extends React.Component<
 
                   return (
                     <DvConnectionsListView
+                      i18nEmptyStateInfo={t(
+                        'virtualization.activeConnectionsEmptyStateInfo'
+                      )}
+                      i18nEmptyStateTitle={t(
+                        'virtualization.activeConnectionsEmptyStateTitle'
+                      )}
                       linkToConnectionCreate={resolvers.connections.create.selectConnector()}
                       filterTypes={filterTypes}
                       sortTypes={sortTypes}
@@ -129,8 +140,10 @@ export class DvConnectionsWithToolbar extends React.Component<
                       {this.props.children}
                       <DvConnections
                         error={this.props.error}
+                        errorMessage={this.props.errorMessage}
                         loading={this.props.loading}
                         connections={filteredAndSortedConnections}
+                        initialSelection={this.state.selectedConnection}
                         onConnectionSelectionChanged={
                           this.handleConnectionSelectionChanged
                         }

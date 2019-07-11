@@ -1,7 +1,6 @@
 import { Alert, Button, Card } from 'patternfly-react';
 import * as React from 'react';
 import { Container, Loader, PageSection } from '../Layout';
-import { toTestId } from '../utils';
 import './ConnectionDetailsForm.css';
 
 export interface IConnectionDetailsValidationResult {
@@ -96,6 +95,7 @@ export class ConnectionDetailsForm extends React.Component<
               <Card.Body>
                 <form
                   className="required-pf"
+                  data-testid={'connection-details-form'}
                   role="form"
                   onSubmit={this.props.handleSubmit}
                 >
@@ -108,10 +108,7 @@ export class ConnectionDetailsForm extends React.Component<
                   <div>
                     {this.props.isEditing ? (
                       <Button
-                        data-testid={`${toTestId(
-                          'ConnectionDetailsForm',
-                          'validate-button'
-                        )}`}
+                        data-testid={'connection-details-form-validate-button'}
                         bsStyle="default"
                         disabled={this.props.isWorking || !this.props.isValid}
                         onClick={this.props.onValidate}
@@ -123,10 +120,7 @@ export class ConnectionDetailsForm extends React.Component<
                       </Button>
                     ) : (
                       <Button
-                        data-testid={`${toTestId(
-                          'ConnectionDetailsForm',
-                          'edit-button'
-                        )}`}
+                        data-testid={'connection-details-form-edit-button'}
                         bsStyle="primary"
                         onClick={this.props.onStartEditing}
                       >
@@ -136,32 +130,28 @@ export class ConnectionDetailsForm extends React.Component<
                   </div>
                 </form>
               </Card.Body>
-              <Card.Footer>
-                <Button
-                  data-testid={`${toTestId(
-                    'ConnectionDetailsForm',
-                    'cancel-button'
-                  )}`}
-                  bsStyle="default"
-                  className="connection-details-form__editButton"
-                  disabled={this.props.isWorking}
-                  onClick={this.props.onCancelEditing}
-                >
-                  {this.props.i18nCancelLabel}
-                </Button>
-                <Button
-                  data-testid={`${toTestId(
-                    'ConnectionDetailsForm',
-                    'save-button'
-                  )}`}
-                  bsStyle="primary"
-                  className="connection-details-form__editButton"
-                  disabled={this.props.isWorking || !this.props.isValid}
-                  onClick={this.props.handleSubmit}
-                >
-                  {this.props.i18nSaveLabel}
-                </Button>
-              </Card.Footer>
+              {this.props.isEditing ? (
+                <Card.Footer>
+                  <Button
+                    data-testid={'connection-details-form-cancel-button'}
+                    bsStyle="default"
+                    className="connection-details-form__editButton"
+                    disabled={this.props.isWorking}
+                    onClick={this.props.onCancelEditing}
+                  >
+                    {this.props.i18nCancelLabel}
+                  </Button>
+                  <Button
+                    data-testid={'connection-details-form-save-button'}
+                    bsStyle="primary"
+                    className="connection-details-form__editButton"
+                    disabled={this.props.isWorking || !this.props.isValid}
+                    onClick={this.props.handleSubmit}
+                  >
+                    {this.props.i18nSaveLabel}
+                  </Button>
+                </Card.Footer>
+              ) : null}
             </Card>
           </div>
         </Container>

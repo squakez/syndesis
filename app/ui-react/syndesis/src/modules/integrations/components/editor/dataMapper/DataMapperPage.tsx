@@ -6,24 +6,23 @@ import {
 import { DataMapperAdapter } from '@syndesis/atlasmap-adapter';
 import * as H from '@syndesis/history';
 import { Action, Integration } from '@syndesis/models';
-import {
-  ButtonLink,
-  IntegrationEditorLayout,
-  PageSection,
-  toTestId,
-} from '@syndesis/ui';
+import { ButtonLink, IntegrationEditorLayout, PageSection } from '@syndesis/ui';
 import { WithRouteData } from '@syndesis/utils';
 import * as React from 'react';
 import { AppContext } from '../../../../../app';
 import { PageTitle } from '../../../../../shared';
 import { IEditorSidebarProps } from '../EditorSidebar';
-import { IDataMapperRouteParams, IDataMapperRouteState } from '../interfaces';
+import {
+  IDataMapperRouteParams,
+  IDataMapperRouteState,
+  IPageWithEditorBreadcrumb,
+} from '../interfaces';
 import { toUIStep, toUIStepCollection } from '../utils';
 import { getInputDocuments, getOutputDocument } from './utils';
 
 const MAPPING_KEY = 'atlasmapping';
 
-export interface IDataMapperPageProps {
+export interface IDataMapperPageProps extends IPageWithEditorBreadcrumb {
   cancelHref: (
     p: IDataMapperRouteParams,
     s: IDataMapperRouteState
@@ -58,8 +57,6 @@ export const DataMapperPage: React.FunctionComponent<
   const [mappings, setMapping] = React.useState<string | undefined>(undefined);
 
   const onMappings = (newMappings: string) => {
-    // tslint:disable-next-line
-    console.log('onMappings', newMappings, mappings);
     setMapping(newMappings);
   };
 
@@ -121,6 +118,7 @@ export const DataMapperPage: React.FunctionComponent<
                 <IntegrationEditorLayout
                   title={state.step.name}
                   description={state.step.description}
+                  toolbar={props.getBreadcrumb(state.step.name, params, state)}
                   sidebar={props.sidebar({
                     activeIndex: positionAsNumber,
                     activeStep: toUIStep(state.step),
@@ -130,7 +128,12 @@ export const DataMapperPage: React.FunctionComponent<
                     ),
                   })}
                   content={
-                    <PageSection noPadding={true}>
+                    <PageSection
+                      noPadding={true}
+                      style={{
+                        overflow: 'hidden',
+                      }}
+                    >
                       <DataMapperAdapter
                         documentId={state.integration.id!}
                         inputDocuments={inputDocuments}
@@ -145,10 +148,7 @@ export const DataMapperPage: React.FunctionComponent<
                   }
                   extraActions={
                     <ButtonLink
-                      data-testid={toTestId(
-                        'DataMapperPage',
-                        'save-mapping-button'
-                      )}
+                      data-testid={'data-mapper-page-save-mapping-button'}
                       onClick={saveMappingStep}
                       disabled={!mappings}
                       as={'primary'}

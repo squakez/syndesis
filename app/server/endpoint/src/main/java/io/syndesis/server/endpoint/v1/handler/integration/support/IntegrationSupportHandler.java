@@ -48,6 +48,7 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -63,6 +64,7 @@ import io.syndesis.common.model.Schema;
 import io.syndesis.common.model.WithId;
 import io.syndesis.common.model.WithName;
 import io.syndesis.common.model.WithResourceId;
+import io.syndesis.common.model.connection.ConfigurationProperty;
 import io.syndesis.common.model.connection.Connection;
 import io.syndesis.common.model.connection.Connector;
 import io.syndesis.common.model.extension.Extension;
@@ -79,6 +81,8 @@ import io.syndesis.integration.api.IntegrationResourceManager;
 import io.syndesis.server.dao.file.FileDataManager;
 import io.syndesis.server.dao.file.IconDao;
 import io.syndesis.server.dao.manager.DataManager;
+import io.syndesis.server.dao.manager.EncryptionComponent;
+import io.syndesis.server.endpoint.v1.handler.extension.ExtensionActivator;
 import io.syndesis.server.endpoint.v1.handler.integration.IntegrationHandler;
 import io.syndesis.server.jsondb.CloseableJsonDB;
 import io.syndesis.server.jsondb.JsonDB;
@@ -111,17 +115,18 @@ public class IntegrationSupportHandler {
     private final IntegrationResourceManager resourceManager;
     private final IntegrationHandler integrationHandler;
     private final FileDataManager extensionDataManager;
+    private final ExtensionActivator extensionActivator;
     private final IconDao iconDao;
+    private final EncryptionComponent encryptionComponent;
 
-    public IntegrationSupportHandler(
-        final Migrator migrator,
-        final SqlJsonDB jsondb,
-        final IntegrationProjectGenerator projectGenerator,
-        final DataManager dataManager,
-        final IntegrationResourceManager resourceManager,
-        final IntegrationHandler integrationHandler,
-        final FileDataManager extensionDataManager,
-        final IconDao iconDao) {
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    public IntegrationSupportHandler(final Migrator migrator, final SqlJsonDB jsondb,
+                                     final IntegrationProjectGenerator projectGenerator,
+                                     final DataManager dataManager, final IntegrationResourceManager resourceManager,
+                                     final IntegrationHandler integrationHandler,
+                                     final FileDataManager extensionDataManager,
+                                     final EncryptionComponent encryptionComponent,
+                                     final ExtensionActivator extensionActivator, final IconDao iconDao) {
         this.migrator = migrator;
         this.jsondb = jsondb;
 
@@ -130,6 +135,8 @@ public class IntegrationSupportHandler {
         this.resourceManager = resourceManager;
         this.integrationHandler = integrationHandler;
         this.extensionDataManager = extensionDataManager;
+        this.encryptionComponent = encryptionComponent;
+        this.extensionActivator = extensionActivator;
         this.iconDao = iconDao;
     }
 
@@ -239,9 +246,7 @@ public class IntegrationSupportHandler {
             if (resourceIdentifier.getKind() == Kind.OpenApi) {
                 final Optional<OpenApi> openApiResource = resourceManager.loadOpenApiDefinition(resourceIdentifier.getId().get());
 
-                if (openApiResource.isPresent()) {
-                    addModelToExport(export, openApiResource.get());
-                }
+                openApiResource.ifPresent(openApi -> addModelToExport(export, openApi));
             }
         }
     }
@@ -312,7 +317,11 @@ public class IntegrationSupportHandler {
                     String path = "/extensions/" + extension.getId().get();
                     InputStream existing = extensionDataManager.getExtensionDataAccess().read(path);
                     if( existing == null ) {
+                        // write blob in jsondb
                         extensionDataManager.getExtensionDataAccess().write(path, zis);
+
+                        // also activate the imported extension
+                        extensionActivator.activateExtension((Extension) extension);
                     } else {
                         existing.close();
                     }
@@ -363,10 +372,8 @@ public class IntegrationSupportHandler {
             }
         };
 
-        // undelete existing deleted extensions that were referenced in the model
-        undeleteImportedExtensions(extensionDao, result);
-
-        importModels(extensionDao, RENAME_EXTENSION, renamedIds, result);
+        final Map<String, String> replaceExtensions = new HashMap<>();
+        importExtensions(extensionDao, replaceExtensions, renamedIds, result);
 
         // NOTE: connectors are imported without renaming and ignoring renamed ids
         // as a matter of fact, the lambda should never be called
@@ -384,12 +391,20 @@ public class IntegrationSupportHandler {
             }
         }, RENAME_CONNECTION, renamedIds, result);
 
+        // remove hidden external secrets from imported connections
+        final List<WithResourceId> connections = result.get("connections");
+        if (connections != null && !connections.isEmpty()) {
+            for (WithResourceId connection : connections) {
+                removeHiddenExternalSecrets((Connection) connection);
+            }
+        }
+
         importIntegrations(sec, new JsonDbDao<Integration>(given) {
             @Override
             public Class<Integration> getType() {
                 return Integration.class;
             }
-        }, renamedIds, result);
+        }, renamedIds, replaceExtensions, result);
 
         importModels(new JsonDbDao<OpenApi>(given) {
             @Override
@@ -408,26 +423,66 @@ public class IntegrationSupportHandler {
         return result;
     }
 
-    private void undeleteImportedExtensions(JsonDbDao<Extension> extensionDao, Map<String, List<WithResourceId>> result) {
+    private void importExtensions(JsonDbDao<Extension> extensionDao, Map<String, String> replaceExtensions,
+                                  Map<String, String> renamedIds, Map<String, List<WithResourceId>> result) {
+        importModels(extensionDao, RENAME_EXTENSION, renamedIds, result, (e, i) -> {
 
-        for (String id : extensionDao.fetchIds()) {
-            final Extension extension = dataManager.fetch(Extension.class, id);
-            if (extension != null) {
-                final Optional<Extension.Status> status = extension.getStatus();
-                if (status.isPresent() && status.get() == Extension.Status.Deleted) {
-                    // undelete the extension
-                    final Extension updated = new Extension.Builder()
-                            .createFrom(extension)
-                            .status(Extension.Status.Installed)
-                            .build();
-                    dataManager.update(updated);
-                    addImportedItemResult(result, updated);
+            boolean doImport = false;
+
+            final Set<String> ids = dataManager.fetchIdsByPropertyValue(e.getType(),
+                    "extensionId", i.getExtensionId(),
+                    "status", Extension.Status.Installed.name());
+            if (ids.isEmpty()) {
+                // new extension
+                doImport = true;
+            } else {
+                for (String id : ids) {
+                    final Extension extension = dataManager.fetch(e.getType(), id);
+                    final DefaultArtifactVersion existingVersion = new DefaultArtifactVersion(extension.getVersion());
+                    final DefaultArtifactVersion importedVersion = new DefaultArtifactVersion(i.getVersion());
+
+                    // only import newer version, otherwise replace it in imported integration later
+                    if (existingVersion.compareTo(importedVersion) < 0) {
+                        doImport = true;
+                    } else {
+                        replaceExtensions.put(i.getId().get(), id);
+                    }
                 }
             }
+
+            return doImport;
+        });
+    }
+
+    // Strip un-ordered (hidden) secret properties in imported connections that can't be decoded in this instance
+    // this will remove any external auto-generated properties like OAuth refreshTokens
+    // NOTE that this doesn't remove ordered editable external secrets,
+    // since they need to be manually edited by user and are used to detect connections that need to be re-configured
+    private void removeHiddenExternalSecrets(Connection connection) {
+        final Optional<Connector> connector = connection.getConnector();
+        if (!connector.isPresent()) {
+            return;
+        }
+
+        final Map<String, ConfigurationProperty> properties = connector.get().getProperties();
+        final Map<String, String> configuredProperties = connection.getConfiguredProperties();
+
+        final Map<String, String> updatedProperties = new HashMap<>(configuredProperties);
+        updatedProperties.entrySet().removeIf( e ->  {
+                final ConfigurationProperty prop = properties.get(e.getKey());
+                final String value = e.getValue();
+                return !prop.getOrder().isPresent() && value != null
+                        && prop.getSecret() && this.encryptionComponent.decrypt(value) == null;
+        });
+
+        if (updatedProperties.size() != configuredProperties.size()) {
+            this.dataManager.update(connection.builder().configuredProperties(updatedProperties).build());
         }
     }
 
-    private void importIntegrations(SecurityContext sec, JsonDbDao<Integration> export, Map<String, String> renamedIds, Map<String, List<WithResourceId>> result) {
+    private void importIntegrations(SecurityContext sec, JsonDbDao<Integration> export,
+                                    Map<String, String> renamedIds, Map<String, String> replacedExtensions,
+                                    Map<String, List<WithResourceId>> result) {
         for (Integration integration : export.fetchAll().getItems()) {
             Integration.Builder builder = new Integration.Builder()
                 .createFrom(integration)
@@ -437,7 +492,7 @@ public class IntegrationSupportHandler {
             // Do we need to create it?
             String id = integration.getId().get();
             Integration previous = dataManager.fetch(Integration.class, id);
-            resolveDuplicateNames(integration, builder, renamedIds);
+            resolveDuplicateNames(integration, builder, renamedIds, replacedExtensions);
             if (previous == null) {
                 LOG.info("Creating integration: {}", integration.getName());
                 integrationHandler.create(sec, builder.build());
@@ -450,7 +505,8 @@ public class IntegrationSupportHandler {
         }
     }
 
-    private void resolveDuplicateNames(Integration integration, Integration.Builder builder, Map<String, String> renamedIds) {
+    private void resolveDuplicateNames(Integration integration, Integration.Builder builder,
+                                       Map<String, String> renamedIds, Map<String, String> replacedExtensions) {
 
         // check for duplicate integration name
         String integrationName = integration.getName();
@@ -472,7 +528,11 @@ public class IntegrationSupportHandler {
                             // step connections
                             .connection(s.getConnection().map(c -> renameIfNeeded(c, renamedIds, RENAME_CONNECTION)))
                             // step extensions
-                            .extension(s.getExtension().map(e -> renameIfNeeded(e, renamedIds, RENAME_EXTENSION)))
+                            .extension(s.getExtension().map(e -> {
+                                final String existingId = replacedExtensions.get(e.getId().get());
+                                return existingId != null ? dataManager.fetch(Extension.class, existingId) :
+                                        renameIfNeeded(e, renamedIds, RENAME_EXTENSION);
+                            }))
                             .build())
                     .collect(Collectors.toList()))
                 .build())
@@ -493,7 +553,7 @@ public class IntegrationSupportHandler {
         final ListResult<T> deployments = dataManager.fetchAll(model);
         return deployments.getItems().stream()
                 .filter(filterFunc::apply)
-                .map(propertyFunc::apply)
+                .map(propertyFunc)
                 .collect(Collectors.toSet());
     }
 
@@ -519,12 +579,16 @@ public class IntegrationSupportHandler {
             }
         }
     }
-    private <T extends WithId<T> & WithName> void importModels(JsonDbDao<T> export, BiFunction<T, String, T> renameFunc,
-                                                               Map<String, String> renames, Map<String, List<WithResourceId>> result) {
-        final Set<String> names = getAllPropertyValues(export.getType(), o -> o.getName());
+
+    private <T extends WithId<T> & WithName> void importModels(JsonDbDao<T> export, BiFunction<T, String, T> renameFunc, Map<String, String> renames, Map<String, List<WithResourceId>> result) {
+        importModels(export, renameFunc, renames, result, (e, i) -> dataManager.fetch(e.getType(), i.getId().get()) == null);
+    }
+
+    private <T extends WithId<T> & WithName> void importModels(JsonDbDao<T> export, BiFunction<T, String, T> renameFunc, Map<String, String> renames, Map<String, List<WithResourceId>> result, BiFunction<JsonDbDao<T>, T, Boolean> compareFunc) {
+        final Set<String> names = getAllPropertyValues(export.getType(), WithName::getName);
         for (T item : export.fetchAll().getItems()) {
             String id = item.getId().get();
-            if (dataManager.fetch(export.getType(), id) == null) {
+            if (compareFunc.apply(export, item)) {
 
                 // resolve duplicate names
                 String name = item.getName();

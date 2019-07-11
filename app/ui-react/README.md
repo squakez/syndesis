@@ -146,7 +146,10 @@ Restores the `syndesis-ui` POD to the original state.
 
 Runs the app in the development mode. API calls will be proxied to the provided `BACKEND` URL.
 
-The proxy will require the session cookies to be able to properly work. The right cookies will be retrieved through an automated instance of Chromium, that will wait for the user to login. Once properly logged in - a condition recognized by the browser navigating back to the provided `BACKEND` url - the session cookies will be extracted and the Chromium instance will be closed. 
+The proxy will require the session cookies to be able to properly work. The right cookies will be retrieved through an automated instance of Chromium, that will wait for the user to login. Once properly logged in - a condition recognized by the browser navigating back to the provided `BACKEND` url - the session cookies will be extracted and the Chromium instance will be closed.
+
+It's also possibile to enable the _chaos mode_ setting the `CHAOS` env variable. In _chaos mode_ API requests have a 50% chance to fail with an error 500.   
+This mode is useful to test the resilience of the app.  
 
 **IMPORTANT**
 
@@ -634,38 +637,68 @@ We now have a page that is resilient to page refreshes, can be shared with other
 
 ### Testing
 
-#### Adding test identifiers
 
-UI components that have user interaction should define a `data-testid` attribute. Here are a few components that might need a test identifier: `ButtonLink`, `button`, `a`, `input`, `Link`, `PfVerticalNavItem`, `PfNavLink`, `li` used in menus, and `DropdownItem`.
-
-The `toTestId` utilitity function, which is found in the `testIdGenerator.ts` file in the `utils` folder of the `@syndesis/ui` package, should be used to generate **all** test identifiers. This function ensures the identifier is formatted correctly and only contains valid characters. It also provides a way to separate segments of the identifier if segments are desired.
-
-The `toTestId` function accepts one or more strings and inserts a dash (`-`) character between them. It is recommended to have the first string be the name of the component. Here is an example of how to use the `toTestId` function:
-
-```tsx
-export class ExtensionListItem extends React.Component<
-...
-<Button
-  data-testid={`${toTestId(
-    'ExtensionListItem',
-    this.props.extensionName,
-    'delete-button'
-  )}`}
-  ...
->
-  {this.props.i18nDelete}
-</Button>
-```
-
-The above code produces this test ID for an extension with the name of "My Extension": `extensionlistitem-my-extension-delete-button`.
 
 #### Unit testing
 
-TODO talk about jest, react-testing-library, point out to useful resources.
+Unit tests exist in both the [`packages/ui`](packages/ui) and [`syndesis`](syndesis) directories.
+
+When you run `$ yarn test`, these will run automatically along with all other unit tests.
+
+Alternatively, you can run `$ yarn test --coverage --color --runInBand` from the `./syndesis` or `./packages/ui` directories.
+
+To run for just one package, run `$ yarn test` from within the package directory.
+
+We use [react-testing-library] and [Jest] for unit tests. Test coverage is provided by [Istanbul], which comes built into Jest. Coverage reporting is enabled with the `--coverage` flag.
+
+You can find the configuration settings for Jest in `./packages/ui/package.json` under the `jest` prop, or under `./syndesis/package.json`.
+
+
+#### E2E testing
+
+To run all E2E tests, run the following from the [`./syndesis`](syndesis) dir: `$ yarn e2e`
+
+To run E2E tests directly in the terminal (and record results): `$ yarn e2e:terminal`
+
+Cypress will check the `baseUrl` you have configured, which should be your app server. If it cannot load it, it will not validate and will not run. The `baseUrl` is defined in [`./syndesis/cypress.json`](syndesis/cypress.json).
+
+E2E tests are written using [Cypress] and live in the [`./syndesis/cypress/integration`](syndesis/cypress/integration) directory. Fixtures are fixed sets of data loaded from files, and they can be found in [`./syndesis/cypress/fixtures`](syndesis/cypress/fixtures).
+
+You can find the configuration settings for Cypress under [`./syndesis/cypress.json`](syndesis/cypress.json).
+
 
 #### Integration testing
 
-TODO talk about Cypress, the backend, the mock recorder/replayer, how to write an integration test
+Given that true integration tests would require extensive mocking of the app, we instead have a BE recorder/replayer that will resemble integration tests as closely as possible, using [Cypress].
+
+The `syndesis` dev server interacts with a given API via a proxy set up by CRA, records the responses, and allows you to replay those responses for later use (i.e. in tests). Recordings are stored in [`./syndesis/tapes/[value of the syndesis-mock-session request header]full/api/path/xxx.json5`](syndesis/tapes).
+
+To run the backend server:
+```
+$ BACKEND=https://syndesis-staging.b6ff.rh-idev.openshiftapps.com yarn start:proxy
+```
+
+To record a session: `$ yarn record`
+
+To replay a session: `$ yarn replay` or `$ yarn replay <session-name>`
+
+For more information, please see [this](https://github.com/syndesisio/syndesis-react/pull/106) PR.
+
+#### Adding test identifiers
+
+UI components that have user interaction should define a `data-testid` attribute. Here are a few components that might need a test identifier: `a`, `button`, `Button`, `ButtonLink`, `Card`, `DropdownItem`, `FormControl`, `Grid.Row`, `input`, `Label`, `li`, `Link`, `ListViewItem`, `PfNavLink`, `PfVerticalNavItem`, and `Title`.
+
+Test identifiers that do not contain any user-defined text should be a hardcoded string. **Only alphanumeric characters and hyphens should be used.** A common convention, though not mandatory, is to format the identifier using the file component name and the widget whose ID is being set. For example, a `data-testid` value of `api-connector-details-form-cancel-button` might be found on a button in the `ApiConnectorDetailsForm` component.
+
+When a test identifier needs to contain some user-defined text, like for a card, list item, or row, the `toValidHtmlId` utility function, found in the `@syndesis/ui/helpers.ts` file, should be used to format the user-defined text. This function ensures the identifier only contains valid characters. Here is an example:
+
+```tsx
+        data-testid={`integrations-list-item-${toValidHtmlId(
+          this.props.integrationName
+        )}-list-item`}
+```
+
+The above code produces this test ID an integration with the name of "My Integration": `integrations-list-item-my-integration-list-item`.
 
 ## License
 

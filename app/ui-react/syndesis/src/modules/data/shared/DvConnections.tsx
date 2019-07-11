@@ -1,4 +1,3 @@
-import { getConnectionIcon } from '@syndesis/api';
 import { Connection } from '@syndesis/models';
 import {
   DvConnectionCard,
@@ -8,28 +7,41 @@ import {
 } from '@syndesis/ui';
 import { WithLoader } from '@syndesis/utils';
 import * as React from 'react';
-import { ApiError } from '../../../shared';
-import {
-  getDvConnectionStatus,
-  isDvConnectionSelected,
-} from './VirtualizationUtils';
+import { ApiError, EntityIcon } from '../../../shared';
+import { getDvConnectionStatus } from './VirtualizationUtils';
 
 export interface IDvConnectionsProps {
   error: boolean;
+  errorMessage?: string;
   loading: boolean;
   connections: Connection[];
+  initialSelection: string; // Name of initially selected connection
   onConnectionSelectionChanged: (name: string, selected: boolean) => void;
 }
 
-export class DvConnections extends React.Component<IDvConnectionsProps> {
+export interface IDvConnectionsState {
+  selectedConnection: string;
+}
+
+export class DvConnections extends React.Component<
+  IDvConnectionsProps,
+  IDvConnectionsState
+> {
   public constructor(props: IDvConnectionsProps) {
     super(props);
+    this.state = {
+      selectedConnection: this.props.initialSelection, // initial selection
+    };
     this.handleConnSourceSelectionChanged = this.handleConnSourceSelectionChanged.bind(
       this
     );
   }
 
   public handleConnSourceSelectionChanged(name: string, isSelected: boolean) {
+    const newSelection = isSelected ? name : '';
+    this.setState({
+      selectedConnection: newSelection,
+    });
     this.props.onConnectionSelectionChanged(name, isSelected);
   }
 
@@ -48,7 +60,7 @@ export class DvConnections extends React.Component<IDvConnectionsProps> {
               ))}
             </>
           }
-          errorChildren={<ApiError />}
+          errorChildren={<ApiError error={this.props.errorMessage!} />}
         >
           {() =>
             this.props.connections.map((c, index) => (
@@ -57,8 +69,8 @@ export class DvConnections extends React.Component<IDvConnectionsProps> {
                   name={c.name}
                   description={c.description || ''}
                   dvStatus={getDvConnectionStatus(c)}
-                  icon={getConnectionIcon(process.env.PUBLIC_URL, c)}
-                  selected={isDvConnectionSelected(c)}
+                  icon={<EntityIcon entity={c} alt={c.name} width={46} />}
+                  selected={this.state.selectedConnection === c.name}
                   onSelectionChanged={this.handleConnSourceSelectionChanged}
                 />
               </DvConnectionsGridCell>

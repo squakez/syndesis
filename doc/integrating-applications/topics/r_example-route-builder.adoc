@@ -2,7 +2,7 @@
 // as_develop-step-extensions.adoc
 
 [id='example-route-builder_{context}']
-= Example of developing a Camel route with RouteBuilder
+= Example of developing a Camel route with `RouteBuilder`
 
 You can implement a custom step by developing an action as a Camel
 route with the support of the `RouteBuilder` class. Such a route

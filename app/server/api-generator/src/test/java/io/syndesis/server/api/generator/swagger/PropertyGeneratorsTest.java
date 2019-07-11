@@ -16,9 +16,16 @@
 package io.syndesis.server.api.generator.swagger;
 
 import java.net.URI;
+import java.util.Optional;
 
 import io.swagger.models.Scheme;
 import io.swagger.models.Swagger;
+import io.swagger.models.auth.ApiKeyAuthDefinition;
+import io.swagger.models.auth.BasicAuthDefinition;
+import io.swagger.models.auth.OAuth2Definition;
+import io.syndesis.common.model.connection.ConfigurationProperty;
+import io.syndesis.common.model.connection.ConfigurationProperty.PropertyValue;
+import io.syndesis.common.model.connection.ConnectorSettings;
 
 import org.junit.Test;
 
@@ -28,6 +35,29 @@ import static io.syndesis.server.api.generator.swagger.PropertyGenerators.determ
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PropertyGeneratorsTest {
+
+    @Test
+    public void shouldConsiderOnlyAuthorizationCodeOAuthFlows() {
+        final Swagger swagger = new Swagger()
+            .securityDefinition("oauth-username-password", new OAuth2Definition().password("https://api.example.com/token"))
+            .securityDefinition("oauth-implicit", new OAuth2Definition().implicit("https://api.example.com/authz"))
+            .securityDefinition("oauth-authorization-code", new OAuth2Definition().accessCode("https://api.example.com/token", "https://api.example.com/authz"))
+            .securityDefinition("basic-auth", new BasicAuthDefinition())
+            .securityDefinition("api-key", new ApiKeyAuthDefinition());
+
+        final ConfigurationProperty template = new ConfigurationProperty.Builder().build();
+        final ConnectorSettings settings = new ConnectorSettings.Builder().build();
+        final Optional<ConfigurationProperty> authenticationTypes = PropertyGenerators.authenticationType
+            .propertyGenerator()
+            .generate(swagger, template, settings);
+
+        assertThat(authenticationTypes)
+            .contains(new ConfigurationProperty.Builder()
+                .addEnum(PropertyValue.Builder.of("oauth2:oauth-authorization-code", "OAuth 2.0 - oauth-authorization-code"))
+                .addEnum(PropertyValue.Builder.of("basic:basic-auth", "HTTP Basic Authentication - basic-auth"))
+                .addEnum(PropertyValue.Builder.of("apiKey:api-key", "API Key - api-key"))
+                .build());
+    }
 
     @Test
     public void shouldCreateHostUri() {
@@ -61,6 +91,36 @@ public class PropertyGeneratorsTest {
     }
 
     @Test
+    public void shouldDetermineSecurityDefinitionToUseFromTheConfiguredAuthenticationType() {
+        final BasicAuthDefinition securityDefinition = new BasicAuthDefinition();
+
+        final Swagger swagger = new Swagger()
+            .securityDefinition("username-password", securityDefinition);
+
+        final ConnectorSettings settings = new ConnectorSettings.Builder()
+            .putConfiguredProperty(PropertyGenerators.authenticationType.name(), "basic:username-password")
+            .build();
+
+        final Optional<BasicAuthDefinition> got = PropertyGenerators.securityDefinition(swagger, settings, BasicAuthDefinition.class);
+        assertThat(got).containsSame(securityDefinition);
+    }
+
+    @Test
+    public void shouldDetermineSecurityDefinitionToUseFromTheConfiguredAuthenticationTypeWithName() {
+        final BasicAuthDefinition securityDefinition = new BasicAuthDefinition();
+
+        final Swagger swagger = new Swagger()
+            .securityDefinition("username-password", securityDefinition);
+
+        final ConnectorSettings settings = new ConnectorSettings.Builder()
+            .putConfiguredProperty(PropertyGenerators.authenticationType.name(), "basic:username-password")
+            .build();
+
+        final Optional<BasicAuthDefinition> got = PropertyGenerators.securityDefinition(swagger, settings, BasicAuthDefinition.class);
+        assertThat(got).containsSame(securityDefinition);
+    }
+
+    @Test
     public void shouldReturnNullIfNoHostGivenAnywhere() {
         assertThat(determineHost(new Swagger())).isNull();
         assertThat(determineHost(new Swagger().scheme(Scheme.HTTP))).isNull();
@@ -70,5 +130,36 @@ public class PropertyGeneratorsTest {
     @Test
     public void shouldReturnNullIfNoHttpSchemesFound() {
         assertThat(determineHost(new Swagger().scheme(Scheme.WS).scheme(Scheme.WSS))).isNull();
+    }
+
+    @Test
+    public void shouldTakeOnlyAuthorizationCodeOAuthFlowUrls() {
+        final Swagger swagger = new Swagger()
+            .securityDefinition("oauth-username-password", new OAuth2Definition().password("https://wrong.example.com/token"))
+            .securityDefinition("oauth-implicit", new OAuth2Definition().implicit("https://wrong.example.com/authz"))
+            .securityDefinition("oauth-authorization-code",
+                new OAuth2Definition().accessCode("https://api.example.com/token", "https://api.example.com/authz"));
+
+        final ConfigurationProperty template = new ConfigurationProperty.Builder().build();
+        final ConnectorSettings settings = new ConnectorSettings.Builder()
+            .putConfiguredProperty(PropertyGenerators.authenticationType.name(), "oauth2:oauth-authorization-code")
+            .build();
+        final Optional<ConfigurationProperty> authorizationEndpoint = PropertyGenerators.authorizationEndpoint
+            .propertyGenerator()
+            .generate(swagger, template, settings);
+
+        assertThat(authorizationEndpoint)
+            .contains(new ConfigurationProperty.Builder()
+                .defaultValue("https://api.example.com/token")
+                .build());
+
+        final Optional<ConfigurationProperty> tokenEndpoint = PropertyGenerators.tokenEndpoint
+            .propertyGenerator()
+            .generate(swagger, template, settings);
+
+        assertThat(tokenEndpoint)
+            .contains(new ConfigurationProperty.Builder()
+                .defaultValue("https://api.example.com/authz")
+                .build());
     }
 }

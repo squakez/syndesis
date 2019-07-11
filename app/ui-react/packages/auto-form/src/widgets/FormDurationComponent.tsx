@@ -1,7 +1,8 @@
+import { Popover } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   ControlLabel,
   DropdownButton,
-  FieldLevelHelp,
   Form,
   FormGroup,
   MenuItem,
@@ -101,6 +102,7 @@ export class FormDurationComponent extends React.Component<
     );
   }
   public render() {
+    const controlId = `${toValidHtmlId(this.props.field.name)}-duration`;
     return (
       <FormGroup
         {...this.props.property.formGroupAttributes}
@@ -118,9 +120,12 @@ export class FormDurationComponent extends React.Component<
           {this.props.property.displayName}
         </ControlLabel>
         {this.props.property.labelHint && (
-          <ControlLabel>
-            <FieldLevelHelp content={this.props.property.labelHint} />
-          </ControlLabel>
+          <Popover
+            aria-label={this.props.property.labelHint}
+            bodyContent={this.props.property.labelHint}
+          >
+            <OutlinedQuestionCircleIcon className="pf-u-ml-xs" />
+          </Popover>
         )}
         <Form.InputGroup>
           <Form.FormControl
@@ -141,7 +146,8 @@ export class FormDurationComponent extends React.Component<
             title={this.props.property.controlHint}
           />
           <DropdownButton
-            data-testid={`${toValidHtmlId(this.props.field.name)}-duration`}
+            id={controlId}
+            data-testid={controlId}
             componentClass={Form.InputGroup.Button}
             title={this.state.duration.label}
             onSelect={this.handleOnSelect}

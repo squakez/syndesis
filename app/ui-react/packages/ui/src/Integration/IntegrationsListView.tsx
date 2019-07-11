@@ -6,7 +6,7 @@ import {
   ListViewToolbar,
   SimplePageHeader,
 } from '../Shared';
-import { toTestId } from '../utils';
+import { IntegrationsEmptyState } from './IntegrationsEmptyState';
 
 export interface IIntegrationsListViewProps extends IListViewToolbarProps {
   linkToManageCiCd: H.LocationDescriptor;
@@ -17,6 +17,9 @@ export interface IIntegrationsListViewProps extends IListViewToolbarProps {
   i18nManageCiCd: string;
   i18nImport: string;
   i18nLinkCreateConnection: string;
+  i18nLinkCreateIntegrationTip?: string;
+  i18nEmptyStateInfo: string;
+  i18nEmptyStateTitle: string;
 }
 
 export class IntegrationsListView extends React.Component<
@@ -33,28 +36,19 @@ export class IntegrationsListView extends React.Component<
           <ListViewToolbar {...this.props}>
             <div className="form-group">
               <ButtonLink
-                data-testid={`${toTestId(
-                  'IntegrationsListView',
-                  'manage-cicd-button'
-                )}`}
+                data-testid={'integrations-list-view-manage-cicd-button'}
                 href={this.props.linkToManageCiCd}
               >
                 {this.props.i18nManageCiCd}
               </ButtonLink>
               <ButtonLink
-                data-testid={`${toTestId(
-                  'IntegrationsListView',
-                  'import-button'
-                )}`}
+                data-testid={'integrations-list-view-import-button'}
                 href={this.props.linkToIntegrationImport}
               >
                 {this.props.i18nImport}
               </ButtonLink>
               <ButtonLink
-                data-testid={`${toTestId(
-                  'IntegrationsListView',
-                  'create-button'
-                )}`}
+                data-testid={'integrations-list-view-create-button'}
                 href={this.props.linkToIntegrationCreation}
                 as={'primary'}
               >
@@ -62,7 +56,17 @@ export class IntegrationsListView extends React.Component<
               </ButtonLink>
             </div>
           </ListViewToolbar>
-          {this.props.children}
+          {this.props.children ? (
+            this.props.children
+          ) : (
+            <IntegrationsEmptyState
+              i18nCreateIntegration={this.props.i18nLinkCreateConnection}
+              i18nCreateIntegrationTip={this.props.i18nLinkCreateIntegrationTip}
+              i18nEmptyStateInfo={this.props.i18nEmptyStateInfo}
+              i18nEmptyStateTitle={this.props.i18nEmptyStateTitle}
+              linkCreateIntegration={this.props.linkToIntegrationCreation}
+            />
+          )}
         </PageSection>
       </>
     );

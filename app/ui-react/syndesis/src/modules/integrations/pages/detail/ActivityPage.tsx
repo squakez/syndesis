@@ -9,6 +9,7 @@ import {
   IntegrationDetailHeader,
   WithIntegrationActions,
 } from '../../components';
+import resolvers from '../../resolvers';
 import { ActivityPageTable } from './ActivityPageTable';
 import { IDetailsRouteParams, IDetailsRouteState } from './interfaces';
 
@@ -28,23 +29,24 @@ export class ActivityPage extends React.Component {
             <AppContext.Consumer>
               {({ getPodLogUrl }) => (
                 <WithRouteData<IDetailsRouteParams, IDetailsRouteState>>
-                  {({ integrationId }, { integration }, { history }) => {
+                  {({ integrationId }, { integration }) => {
                     return (
                       <>
                         <WithMonitoredIntegration
                           integrationId={integrationId}
                           initialValue={integration}
                         >
-                          {({ data, hasData, error }) => (
+                          {({ data, hasData, error, errorMessage }) => (
                             <WithLoader
                               error={error}
                               loading={!hasData}
                               loaderChildren={<PageLoader />}
-                              errorChildren={<ApiError />}
+                              errorChildren={<ApiError error={errorMessage!} />}
                             >
                               {() => (
                                 <WithIntegrationActions
                                   integration={data.integration}
+                                  postDeleteHref={resolvers.list()}
                                 >
                                   {({
                                     ciCdAction,

@@ -20,9 +20,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -49,6 +53,7 @@ import javax.ws.rs.core.StreamingOutput;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -88,21 +93,33 @@ public class PublicApiHandler {
     private static final Pattern UNSAFE_CHARS = Pattern.compile("[<>\"#%{}|\\\\^~\\[\\]`;/?:@=&]");
 
     private final DataManager dataMgr;
-    private final IntegrationSupportHandler handler;
     private final EncryptionComponent encryptionComponent;
-    private final IntegrationHandler integrationHandler;
     private final IntegrationDeploymentHandler deploymentHandler;
     private final ConnectionHandler connectionHandler;
     private final MonitoringProvider monitoringProvider;
 
-    protected PublicApiHandler(DataManager dataMgr, IntegrationSupportHandler handler, EncryptionComponent encryptionComponent, IntegrationHandler integrationHandler, IntegrationDeploymentHandler deploymentHandler, ConnectionHandler connectionHandler, MonitoringProvider monitoringProvider) {
+    // initialized using setter injection to avoid circular dependency
+    private IntegrationSupportHandler handler;
+    private IntegrationHandler integrationHandler;
+
+    // cache of temporary environment names not assigned to any integration
+    private final Queue<String> unusedEnvironments;
+
+    protected PublicApiHandler(DataManager dataMgr, EncryptionComponent encryptionComponent,
+                               IntegrationDeploymentHandler deploymentHandler, ConnectionHandler connectionHandler,
+                               MonitoringProvider monitoringProvider) {
         this.dataMgr = dataMgr;
-        this.handler = handler;
         this.encryptionComponent = encryptionComponent;
-        this.integrationHandler = integrationHandler;
         this.deploymentHandler = deploymentHandler;
         this.connectionHandler = connectionHandler;
         this.monitoringProvider = monitoringProvider;
+
+        this.unusedEnvironments = new ConcurrentLinkedQueue<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getReleaseEnvironments() {
+        return (List<String>) getReleaseEnvironments(false).getEntity();
     }
 
     /**
@@ -111,12 +128,46 @@ public class PublicApiHandler {
     @GET
     @Path("environments")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> getReleaseEnvironments() {
-        return dataMgr.fetchAll(Integration.class).getItems().stream()
-                .filter(i -> !i.isDeleted())
-                .flatMap(i -> i.getContinuousDeliveryState().keySet().stream())
-                .distinct()
-                .collect(Collectors.toList());
+    public Response getReleaseEnvironments(@QueryParam("withUses") @ApiParam boolean withUses) {
+        final Response response;
+        if (!withUses) {
+            List<String> result = dataMgr.fetchAll(Integration.class).getItems().stream()
+                    .filter(i -> !i.isDeleted())
+                    .flatMap(i -> i.getContinuousDeliveryState().keySet().stream())
+                    .distinct()
+                    .collect(Collectors.toList());
+            result.addAll(this.unusedEnvironments);
+            response = Response.ok(result).build();
+        } else {
+            List<EnvironmentWithUses> result = dataMgr.fetchAll(Integration.class).getItems().stream()
+                    .filter(i -> !i.isDeleted())
+                    .flatMap(i -> i.getContinuousDeliveryState().keySet().stream())
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                    .entrySet().stream()
+                    .map(e -> new EnvironmentWithUses(e.getKey(), e.getValue()))
+                    .collect(Collectors.toList());
+            for (String env : unusedEnvironments) {
+                result.add(new EnvironmentWithUses(env, 0L));
+            }
+            response = Response.ok(result).build();
+        }
+        return response;
+    }
+
+    /**
+     * Add new unused environment.
+     */
+    @POST
+    @Path("environments/{env}")
+    public void addNewEnvironment(@NotNull @PathParam("env") @ApiParam(required = true) String environment) {
+        validateEnvironment("environment", environment);
+
+        // look for duplicate environment name
+        if (getReleaseEnvironments().contains(environment)) {
+            throw new ClientErrorException("Duplicate environment " + environment, Response.Status.BAD_REQUEST);
+        }
+
+        this.unusedEnvironments.add(environment);
     }
 
     /**
@@ -127,6 +178,11 @@ public class PublicApiHandler {
     public void deleteEnvironment(@NotNull @PathParam("env") @ApiParam(required = true) String environment) {
 
         validateEnvironment("environment", environment);
+
+        // check if this is an unused environment
+        if (this.unusedEnvironments.remove(environment)) {
+            return;
+        }
 
         // get and update list of integrations with this environment
         final List<Integration> integrations = dataMgr.fetchAll(Integration.class)
@@ -174,6 +230,12 @@ public class PublicApiHandler {
 
         // ignore request if names are the same
         if (environment.equals(newEnvironment)) {
+            return;
+        }
+
+        // renaming an unused environment?
+        if (this.unusedEnvironments.remove(environment)) {
+            this.unusedEnvironments.add(newEnvironment);
             return;
         }
 
@@ -230,6 +292,11 @@ public class PublicApiHandler {
 
         // update json db
         dataMgr.update(integration.builder().continuousDeliveryState(deliveryState).build());
+
+        // move environment name to unused if no other integration uses it
+        if (!getReleaseEnvironments().contains(environment)) {
+            this.unusedEnvironments.add(environment);
+        }
     }
 
     /**
@@ -275,12 +342,24 @@ public class PublicApiHandler {
         }
 
         // delete tags not in the environments list?
+        final Set<String> keySet = deliveryState.keySet();
+        final Set<String> unused = new HashSet<>(keySet);
         if (deleteOtherTags) {
-            deliveryState.keySet().retainAll(environments);
+            unused.removeAll(environments);
+            keySet.retainAll(environments);
         }
 
-        // update json db
+        // update json db before making changes to unusedEnvironments
         dataMgr.update(integration.builder().continuousDeliveryState(deliveryState).build());
+
+        // remove used tags from unused list
+        environments.forEach(this.unusedEnvironments::remove);
+
+        // move deleted unused tags to unused list
+        if (deleteOtherTags) {
+            unused.removeAll(getReleaseEnvironments());
+            this.unusedEnvironments.addAll(unused);
+        }
 
         LOG.debug("Tagged integration {} for environments {} at {}", integrationId, environments, lastTaggedAt);
 
@@ -598,6 +677,16 @@ public class PublicApiHandler {
         dataMgr.update(integration.builder().continuousDeliveryState(map).build());
     }
 
+    @Autowired
+    public void setIntegrationHandler(IntegrationHandler integrationHandler) {
+        this.integrationHandler = integrationHandler;
+    }
+
+    @Autowired
+    public void setIntegrationSupportHandler(IntegrationSupportHandler handler) {
+        this.handler = handler;
+    }
+
     /**
      * DTO for {@link org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput} for importResources.
      */
@@ -672,6 +761,28 @@ public class PublicApiHandler {
 
         public void setStateDetails(IntegrationDeploymentStateDetails stateDetails) {
             this.stateDetails = stateDetails;
+        }
+    }
+
+    /**
+     * Response for {@link #getReleaseEnvironments(boolean)}.
+     */
+    public static class EnvironmentWithUses {
+
+        private final String name;
+        private final Long uses;
+
+        public EnvironmentWithUses(String environment, Long uses) {
+            this.name = environment;
+            this.uses = uses;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Long getUses() {
+            return uses;
         }
     }
 }

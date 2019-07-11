@@ -1,21 +1,24 @@
 import {
-  Level,
-  LevelItem,
+  Button,
+  Dropdown,
+  DropdownPosition,
+  KebabToggle,
   Popover,
   Text,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
 import * as H from '@syndesis/history';
-import { Card, DropdownKebab, Icon } from 'patternfly-react';
+import { Card, Icon } from 'patternfly-react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
+import { toValidHtmlId } from '../helpers';
 import {
   ConfirmationButtonStyle,
   ConfirmationDialog,
   ConfirmationIconType,
+  PfDropdownItem,
 } from '../Shared';
-import { toTestId } from '../utils';
 import './ConnectionCard.css';
 
 export interface IConnectionCardMenuProps {
@@ -33,20 +36,21 @@ export interface IConnectionCardMenuProps {
 }
 
 export interface IConnectionProps {
-  configurationRequired?: boolean;
   description: string;
   href: H.LocationDescriptor;
   i18nCannotDelete?: string;
-  i18nConfigurationRequired?: string;
+  i18nConfigRequired?: string;
   i18nTechPreview?: string;
-  icon: string;
+  icon: React.ReactNode;
+  isConfigRequired?: boolean;
+  isTechPreview?: boolean;
   menuProps?: IConnectionCardMenuProps;
   name: string;
-  techPreview?: boolean;
   techPreviewPopoverHtml?: React.ReactNode;
 }
 
 export interface IConnectionCardState {
+  isMenuOpen: boolean;
   showDeleteDialog: boolean;
 }
 
@@ -58,6 +62,7 @@ export class ConnectionCard extends React.PureComponent<
     super(props);
 
     this.state = {
+      isMenuOpen: false,
       showDeleteDialog: false, // initial visibility of delete dialog
     };
 
@@ -83,6 +88,19 @@ export class ConnectionCard extends React.PureComponent<
       this.props.menuProps.onDelete();
     }
   }
+  public onToggle = (isMenuOpen: boolean) => {
+    this.setState({
+      isMenuOpen,
+    });
+  };
+
+  public onMenuSelect = (
+    event: React.SyntheticEvent<HTMLDivElement, Event>
+  ) => {
+    this.setState({
+      isMenuOpen: !this.state.isMenuOpen,
+    });
+  };
 
   public showDeleteDialog() {
     this.setState({
@@ -108,155 +126,136 @@ export class ConnectionCard extends React.PureComponent<
             onConfirm={this.doDelete}
           />
         )}
-        <Card matchHeight={true} className={'connection-card'}>
-          <Card.Heading
-            className={
-              this.props.techPreview
-                ? 'connection-card__heading connection-card__heading--tech-preview'
-                : 'connection-card__heading connection-card__heading--no-border'
-            }
-          >
-            {this.props.techPreview ? (
-              <Level gutter={'md'}>
-                <LevelItem>&nbsp;</LevelItem>
-                <LevelItem>
-                  {this.props.i18nTechPreview!}
-                  {'  '}
-                  <Popover
-                    bodyContent={
-                      <React.Fragment>
-                        {this.props.techPreviewPopoverHtml}
-                      </React.Fragment>
-                    }
-                    aria-label={this.props.i18nTechPreview!}
-                    position={'left'}
-                  >
-                    <Icon type={'pf'} name={'info'} />
-                  </Popover>
-                </LevelItem>
-              </Level>
-            ) : (
-              <Level gutter={'md'}>&nbsp;</Level>
-            )}
-            {this.props.menuProps && (
-              <div className="heading__dropdown pull-right">
-                <DropdownKebab
-                  id={`connection-${this.props.name}-menu`}
-                  pullRight={true}
-                  title={this.props.menuProps.i18nMenuTitle}
-                >
-                  <li role={'presentation'} key={0}>
+        <Card
+          data-testid={`connection-card-${toValidHtmlId(this.props.name)}-card`}
+          matchHeight={true}
+          className={'connection-card'}
+        >
+          {this.props.isTechPreview && (
+            <div
+              className="connection-card__tech-preview"
+              data-testid={'connection-card-tech-preview-heading'}
+            >
+              {this.props.i18nTechPreview!}
+              {'  '}
+              <Popover
+                bodyContent={
+                  <React.Fragment>
+                    {this.props.techPreviewPopoverHtml}
+                  </React.Fragment>
+                }
+                aria-label={this.props.i18nTechPreview!}
+                position={'left'}
+              >
+                <Icon type={'pf'} name={'info'} />
+              </Popover>
+            </div>
+          )}
+          {this.props.menuProps && (
+            <div className="connection-card__dropdown">
+              <Dropdown
+                id={`connection-${this.props.name}-menu`}
+                data-testid={'connection-card-dropdown'}
+                onSelect={this.onMenuSelect}
+                toggle={
+                  <KebabToggle
+                    id="connection-card-kebab"
+                    data-testid={'connection-card-kebab'}
+                    onToggle={this.onToggle}
+                  />
+                }
+                isOpen={this.state.isMenuOpen}
+                isPlain={true}
+                dropdownItems={[
+                  <PfDropdownItem key="view-action">
                     <Link
-                      data-testid={`${toTestId(
-                        'ConnectionCard',
-                        this.props.name,
-                        'view-action'
-                      )}`}
+                      className="pf-c-dropdown__menu-item"
+                      data-testid={'connection-card-view-action'}
                       to={this.props.href}
                       role={'menuitem'}
                       tabIndex={1}
                     >
                       {this.props.menuProps.i18nViewLabel}
                     </Link>
-                  </li>
-                  <li role={'presentation'} key={1}>
+                  </PfDropdownItem>,
+                  <PfDropdownItem key="edit-action">
                     <Link
-                      data-testid={`${toTestId(
-                        'ConnectionCard',
-                        this.props.name,
-                        'edit-action'
-                      )}`}
+                      className="pf-c-dropdown__menu-item"
+                      data-testid={'connection-card-edit-action'}
                       to={this.props.menuProps.editHref}
                       role={'menuitem'}
                       tabIndex={2}
                     >
                       {this.props.menuProps.i18nEditLabel}
                     </Link>
-                  </li>
-                  <li
-                    className={
-                      !this.props.menuProps.isDeleteEnabled ? 'disabled' : ''
-                    }
-                    role={'presentation'}
-                    key={2}
+                  </PfDropdownItem>,
+                  <PfDropdownItem
+                    disabled={!this.props.menuProps.isDeleteEnabled}
+                    key="delete-action"
+                    onClick={this.showDeleteDialog}
                   >
-                    {this.props.configurationRequired ? (
+                    {!this.props.menuProps.isDeleteEnabled ? (
                       <Tooltip
                         content={this.props.i18nCannotDelete!}
                         position={'bottom'}
                       >
-                        <a
-                          data-testid={`${toTestId(
-                            'ConnectionCard',
-                            this.props.name,
-                            'delete-action'
-                          )}`}
-                          href={'javascript:void(0)'}
-                          onClick={this.showDeleteDialog}
-                          role={'menuitem'}
-                          tabIndex={3}
+                        <Button
+                          className="pf-c-dropdown__menu-item"
+                          isDisabled={true}
+                          variant={'link'}
                         >
                           {this.props.menuProps.i18nDeleteLabel}
-                        </a>
+                        </Button>
                       </Tooltip>
                     ) : (
                       <a
-                        data-testid={`${toTestId(
-                          'ConnectionCard',
-                          this.props.name,
-                          'delete-action'
-                        )}`}
+                        className="pf-c-dropdown__menu-item"
+                        data-testid={'connection-card-delete-action'}
                         href={'javascript:void(0)'}
-                        onClick={this.showDeleteDialog}
                         role={'menuitem'}
                         tabIndex={3}
                       >
                         {this.props.menuProps.i18nDeleteLabel}
                       </a>
                     )}
-                  </li>
-                </DropdownKebab>
-              </div>
-            )}
-          </Card.Heading>
+                  </PfDropdownItem>,
+                ]}
+                position={DropdownPosition.right}
+              />
+            </div>
+          )}
           <Link
-            data-testid={`${toTestId(
-              'ConnectionCard',
-              this.props.name,
-              'details-link'
-            )}`}
+            data-testid={'connection-card-details-link'}
             to={this.props.href}
             className={'connection-card__content'}
           >
             <Card.Body>
               <div className={'connection-card__body'}>
-                <div className="connection-card__icon">
-                  <img src={this.props.icon} alt={this.props.name} width={46} />
-                </div>
+                <div className="connection-card__icon">{this.props.icon}</div>
                 <Title
                   size="lg"
                   className="connection-card__title h2"
-                  data-testid={`${toTestId(
-                    'ConnectionCard',
-                    this.props.name,
-                    'title'
-                  )}`}
+                  data-testid={'connection-card-title'}
                 >
                   {this.props.name}
                 </Title>
-                <Text className="connection-card__description">
+                <Text
+                  className="connection-card__description"
+                  data-testid={'connection-card-description'}
+                >
                   {this.props.description}
                 </Text>
               </div>
             </Card.Body>
-            {this.props.configurationRequired && (
+            {this.props.isConfigRequired && (
               <Card.Footer
                 className={
                   'connection-card__footer--config-required alert alert-warning'
                 }
+                data-testid={'connection-card-config-required-footer'}
               >
                 <Icon type={'pf'} name={'warning-triangle-o'} size={'2x'} />
-                {this.props.i18nConfigurationRequired}
+                {this.props.i18nConfigRequired}
               </Card.Footer>
             )}
           </Link>

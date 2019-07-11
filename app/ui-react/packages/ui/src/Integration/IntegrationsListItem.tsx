@@ -1,5 +1,6 @@
 import { Icon, ListView } from 'patternfly-react';
 import * as React from 'react';
+import { toValidHtmlId } from '../helpers';
 import { IntegrationIcon } from './IntegrationIcon';
 import { IntegrationStatus } from './IntegrationStatus';
 import { IntegrationStatusDetail } from './IntegrationStatusDetail';
@@ -16,8 +17,8 @@ export interface IIntegrationsListItemProps {
   monitoringCurrentStep?: number;
   monitoringTotalSteps?: number;
   monitoringLogUrl?: string;
-  startConnectionIcon: string;
-  finishConnectionIcon: string;
+  startConnectionIcon: React.ReactNode;
+  finishConnectionIcon: React.ReactNode;
   actions: any;
   i18nConfigurationRequired: string;
   i18nError: string;
@@ -36,22 +37,13 @@ export class IntegrationsListItem extends React.Component<
   public render() {
     return (
       <ListView.Item
+        data-testid={`integrations-list-item-${toValidHtmlId(
+          this.props.integrationName
+        )}-list-item`}
         checkboxInput={this.props.checkboxComponent || undefined}
         actions={this.props.actions}
         heading={this.props.integrationName}
         className={'integration-list-item'}
-        description={
-          this.props.isConfigurationRequired && (
-            <div className={'config-required pf-u-my-sm pf-u-ml-2xl'}>
-              <Icon
-                type={'pf'}
-                name={'warning-triangle-o'}
-                className="pf-u-mr-xs"
-              />
-              {this.props.i18nConfigurationRequired}
-            </div>
-          )
-        }
         additionalInfo={[
           <ListView.InfoItem
             key={1}
@@ -76,6 +68,24 @@ export class IntegrationsListItem extends React.Component<
                 i18nUnpublished={this.props.i18nUnpublished}
                 i18nError={this.props.i18nError}
               />
+            )}
+          </ListView.InfoItem>,
+          <ListView.InfoItem
+            key={2}
+            className={'integration-list-item__additional-info'}
+          >
+            {this.props.isConfigurationRequired && (
+              <div
+                className={'integration-list-item__config-required'}
+                data-testid={`integrations-list-item-config-required`}
+              >
+                <Icon
+                  type={'pf'}
+                  name={'warning-triangle-o'}
+                  className="pf-u-mr-xs"
+                />
+                {this.props.i18nConfigurationRequired}
+              </div>
             )}
           </ListView.InfoItem>,
         ]}

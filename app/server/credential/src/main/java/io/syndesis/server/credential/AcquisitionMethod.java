@@ -15,9 +15,10 @@
  */
 package io.syndesis.server.credential;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-
 import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 /**
  * Information on the method of credential acquisition, needed for UI to present
@@ -41,4 +42,7 @@ public interface AcquisitionMethod {
     String getLabel();
 
     Type getType();
+
+    @JsonProperty("configured")
+    boolean configured();
 }

@@ -1,7 +1,16 @@
-import { Grid, Icon } from 'patternfly-react';
+import {
+  Text,
+  TextContent,
+  TextList,
+  TextListItem,
+  TextListItemVariants,
+  TextListVariants,
+  TextVariants,
+} from '@patternfly/react-core';
+import { Icon } from 'patternfly-react';
 import * as React from 'react';
+import { toValidHtmlId } from '../helpers';
 import { Container } from '../Layout/Container';
-import { toTestId } from '../utils';
 import './DndFileChooser.css';
 import { INotification, INotificationType } from './Notifications';
 import { WithDropzone } from './WithDropzone';
@@ -78,7 +87,7 @@ export interface IDndFileChooserProps {
   onUploadRejected(fileName: string): string;
 
   /**
-   * Callback for when one or more file uploads have been accepted. Caller should handler processing of the files.
+   * Callback for when one or more file uploads have been accepted. Caller should handle processing of the files.
    */
   onUploadAccepted(file: File[]): void;
 }
@@ -131,7 +140,7 @@ export class DndFileChooser extends React.Component<
   public getSelectedFileMessage(): JSX.Element {
     // one file uploaded
     if (this.state.files.length === 1) {
-      return <Container>{this.state.files[0].name}</Container>;
+      return <>{this.state.files[0].name}</>;
     }
 
     // multiple files uploaded
@@ -140,11 +149,9 @@ export class DndFileChooser extends React.Component<
         <ul>
           {this.state.files.map((file, index) => (
             <li
-              data-testid={`${toTestId(
-                'DndFileChooser',
-                file.name,
-                'list-item'
-              )}`}
+              data-testid={`dnd-file-chooser-${toValidHtmlId(
+                file.name
+              )}-list-item`}
               key={index}
             >
               {file.name}
@@ -164,18 +171,24 @@ export class DndFileChooser extends React.Component<
   public getUploadMessage(): JSX.Element {
     if (this.props.i18nUploadSuccessMessage) {
       return (
-        <span className="dnd-file-chooser__uploadMessage">
+        <Text
+          component={TextVariants.p}
+          className="dnd-file-chooser__uploadMessage"
+        >
           <Icon type="pf" name="ok" />
           &nbsp;{this.props.i18nUploadSuccessMessage}
-        </span>
+        </Text>
       );
     }
     if (this.props.i18nUploadFailedMessage) {
       return (
-        <span className="dnd-file-chooser__uploadMessage">
+        <Text
+          component={TextVariants.p}
+          className="dnd-file-chooser__uploadMessage"
+        >
           <Icon type="pf" name="error-circle-o" />
           &nbsp;{this.props.i18nUploadFailedMessage}
-        </span>
+        </Text>
       );
     }
     if (
@@ -186,11 +199,9 @@ export class DndFileChooser extends React.Component<
         <ul>
           {this.props.i18nUploadSuccessMessages!.map((message, idx) => (
             <li
-              data-testid={`${toTestId(
-                'DndFileChooser',
-                message,
-                'success-message'
-              )}`}
+              data-testid={`dnd-file-chooser-${toValidHtmlId(
+                message
+              )}-success-message`}
               key={'success' + idx}
               className="dnd-file-chooser__uploadMessage"
             >
@@ -200,11 +211,9 @@ export class DndFileChooser extends React.Component<
           ))}
           {this.props.i18nUploadFailedMessages!.map((message, idx) => (
             <li
-              data-testid={`${toTestId(
-                'DndFileChooser',
-                message,
-                'failed-message'
-              )}`}
+              data-testid={`dnd-file-chooser-${toValidHtmlId(
+                message
+              )}-failed-message-${idx}`}
               key={'fail' + idx}
               className="dnd-file-chooser__uploadMessage"
             >
@@ -260,42 +269,42 @@ export class DndFileChooser extends React.Component<
         onDropRejected={this.handleRejectedFiles}
       >
         {({ getRootProps, getInputProps }) => (
-          <Grid
+          <TextContent
             disabled={this.props.disableDropzone}
-            fluid={true}
             className="dnd-file-chooser"
             {...getRootProps({ refKey: 'dnd-file-chooser' })}
           >
-            <Grid.Row>
-              <Grid.Col
-                className="dnd-file-chooser__instructions"
-                dangerouslySetInnerHTML={{
-                  __html: this.props.i18nInstructions,
-                }}
-              />
-            </Grid.Row>
-            <Grid.Row>
-              <Grid.Col>
-                <input {...getInputProps()} />
-              </Grid.Col>
-            </Grid.Row>
-            <Grid.Row>
-              <Grid.Col className="dnd-file-chooser__selectedFileLabel" xs={3}>
+            <Text
+              component={TextVariants.p}
+              className="dnd-file-chooser__instructions"
+              dangerouslySetInnerHTML={{ __html: this.props.i18nInstructions }}
+            />
+            <input {...getInputProps()} />
+            <TextList
+              component={TextListVariants.dl}
+              className="dnd-file-chooser__selectedFileList"
+            >
+              <TextListItem
+                component={TextListItemVariants.dt}
+                className="dnd-file-chooser__selectedFileLabel"
+              >
                 {this.props.i18nSelectedFileLabel}
-              </Grid.Col>
-              <Grid.Col className="dnd-file-chooser__selectedFile" xs={6}>
+              </TextListItem>
+              <TextListItem
+                component={TextListItemVariants.dd}
+                className="dnd-file-chooser__selectedFile"
+              >
                 {this.getSelectedFileMessage()}
-              </Grid.Col>
-              <Grid.Col xs={3}>{this.getUploadMessage()}</Grid.Col>
-            </Grid.Row>
-            {this.props.i18nHelpMessage ? (
-              <Grid.Row>
-                <Grid.Col className="dnd-file-chooser__helpText">
-                  {this.props.i18nHelpMessage}
-                </Grid.Col>
-              </Grid.Row>
-            ) : null}
-          </Grid>
+              </TextListItem>
+            </TextList>
+            {this.getUploadMessage()}
+            <Text
+              component={TextVariants.small}
+              className="dnd-file-chooser__helpText"
+            >
+              {this.props.i18nHelpMessage}
+            </Text>
+          </TextContent>
         )}
       </WithDropzone>
     );

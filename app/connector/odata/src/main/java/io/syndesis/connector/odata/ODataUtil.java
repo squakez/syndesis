@@ -39,6 +39,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.olingo.client.api.http.HttpClientFactory;
 import org.apache.olingo.commons.api.http.HttpMethod;
+import io.syndesis.connector.support.util.ConnectorOptions;
 import io.syndesis.connector.support.util.KeyStoreHelper;
 
 @SuppressWarnings("PMD")
@@ -71,7 +72,7 @@ public class ODataUtil implements ODataConstants {
 
     private static final Pattern NUMBER_ONLY_PATTERN = Pattern.compile("-?\\d+");
 
-    private static final Pattern KEY_PREDICATE_PATTERN = Pattern.compile("\\(?'?(.+?)\\'?\\)?\\/(.+)");
+    private static final Pattern KEY_PREDICATE_PATTERN = Pattern.compile("\\(?'?(.+?)'?\\)?\\/(.+)");
 
     /**
      * @param url
@@ -88,12 +89,16 @@ public class ODataUtil implements ODataConstants {
     }
 
     private static KeyStore createKeyStore(Map<String, Object> options) throws Exception {
-        String certContent = (String) options.get(SERVER_CERTIFICATE);
+        String certContent = ConnectorOptions.extractOption(options, SERVER_CERTIFICATE);
+        if (ObjectHelper.isEmpty(certContent)) {
+            return KeyStoreHelper.defaultKeyStore();
+        }
+
         return KeyStoreHelper.createKeyStoreWithCustomCertificate("odata", certContent);
     }
 
     public static SSLContext createSSLContext(Map<String, Object> options) throws Exception {
-        String serviceUrl = (String) options.get(SERVICE_URI);
+        String serviceUrl = ConnectorOptions.extractOption(options, SERVICE_URI);
         if (! isServiceSSL(serviceUrl)) {
             return null;
         }
@@ -108,8 +113,8 @@ public class ODataUtil implements ODataConstants {
     }
 
     private static CredentialsProvider createCredentialProvider(Map<String, Object> options) {
-        String basicUser = (String) options.get(BASIC_USER_NAME);
-        String basicPswd = (String) options.get(BASIC_PASSWORD);
+        String basicUser = ConnectorOptions.extractOption(options, BASIC_USER_NAME);
+        String basicPswd = ConnectorOptions.extractOption(options, BASIC_PASSWORD);
 
         if (ObjectHelper.isEmpty(basicUser)) {
             return null;
@@ -208,6 +213,30 @@ public class ODataUtil implements ODataConstants {
             .orElse(path);
     }
 
+    private static String stripQuotesAndBrackets(String value) {
+        if (value.startsWith(OPEN_BRACKET)) {
+            value = value.substring(1);
+        }
+
+        if (value.startsWith(QUOTE_MARK)) {
+            value = value.substring(1);
+        }
+
+        if (value.endsWith(CLOSE_BRACKET)) {
+            value = value.substring(0, value.length() - 1);
+        }
+
+        if (value.endsWith(QUOTE_MARK)) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
+    }
+
+    private static boolean isNumber(String keyPredicate) {
+        Matcher numberOnlyMatcher = NUMBER_ONLY_PATTERN.matcher(keyPredicate);
+        return numberOnlyMatcher.matches();
+    }
+
     /**
      * @param keyPredicate the predicate to be formatted
      * @param includeBrackets whether brackets should be added around the key predicate string
@@ -223,42 +252,46 @@ public class ODataUtil implements ODataConstants {
             subPredicate = kp1Matcher.group(2);
         }
 
-        if (keyPredicate.startsWith(OPEN_BRACKET)) {
-            keyPredicate = keyPredicate.substring(1);
-        }
-
-        if (keyPredicate.startsWith(QUOTE_MARK)) {
-            keyPredicate = keyPredicate.substring(1);
-        }
-
-        if (keyPredicate.endsWith(CLOSE_BRACKET)) {
-            keyPredicate = keyPredicate.substring(0, keyPredicate.length() - 1);
-        }
-
-        if (keyPredicate.endsWith(QUOTE_MARK)) {
-            keyPredicate = keyPredicate.substring(0, keyPredicate.length() - 1);
-        }
-
-        //
-        // if keyPredicate is a number only, it doesn't need quotes
-        //
-        Matcher numberOnlyMatcher = NUMBER_ONLY_PATTERN.matcher(keyPredicate);
-        boolean noQuotes = numberOnlyMatcher.matches();
+        keyPredicate = stripQuotesAndBrackets(keyPredicate);
 
         StringBuilder buf = new StringBuilder();
-        if (includeBrackets) {
+        if (includeBrackets || subPredicate != null) {
             buf.append(OPEN_BRACKET);
         }
-        if (! noQuotes) {
-            buf.append(QUOTE_MARK);
+
+        if (isNumber(keyPredicate)) {
+            //
+            // if keyPredicate is a number only, it doesn't need quotes
+            //
+            buf.append(keyPredicate);
+        } else if (keyPredicate.contains(EQUALS)) {
+            //
+            // keyPredicate contains an equals so acting as a filter
+            //
+            String[] clauses = keyPredicate.split(EQUALS, 2);
+
+            // Strip off quotes on both values
+            String keyName = stripQuotesAndBrackets(clauses[0]);
+            String keyValue = stripQuotesAndBrackets(clauses[1]);
+
+            // KeyName has no quotes
+            buf.append(keyName).append(EQUALS);
+
+            // Check if key value is a number. If not, use quotes.
+            if (isNumber(keyValue)) {
+                buf.append(keyValue);
+            } else {
+                buf.append(QUOTE_MARK).append(keyValue).append(QUOTE_MARK);
+            }
+
+        } else {
+            buf.append(QUOTE_MARK).append(keyPredicate).append(QUOTE_MARK);
         }
-        buf.append(keyPredicate);
-        if (! noQuotes) {
-            buf.append(QUOTE_MARK);
-        }
-        if (includeBrackets) {
+
+        if (includeBrackets || subPredicate != null) {
             buf.append(CLOSE_BRACKET);
         }
+
         if (subPredicate != null) {
             buf.append(FORWARD_SLASH).append(subPredicate);
         }

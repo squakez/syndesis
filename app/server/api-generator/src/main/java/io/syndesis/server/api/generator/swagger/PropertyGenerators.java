@@ -87,11 +87,9 @@ enum PropertyGenerators {
                         .of(new ConfigurationProperty.Builder().createFrom(template).defaultValue("none").addEnum(NO_SECURITY).build());
                 }
 
-                final ConfigurationProperty.PropertyValue[] enums = securityDefinitions.values().stream()//
-                    .map(SecuritySchemeDefinition::getType)//
-                    .filter(SupportedAuthenticationTypes.SUPPORTED::contains)//
-                    .map(SupportedAuthenticationTypes::valueOf)//
-                    .map(SupportedAuthenticationTypes::asPropertyValue)//
+                final ConfigurationProperty.PropertyValue[] enums = securityDefinitions.entrySet().stream()
+                    .filter(e -> SupportedAuthenticationTypes.supports(e.getValue()))
+                    .map(e -> SupportedAuthenticationTypes.asPropertyValue(e.getKey(), e.getValue()))
                     .toArray(l -> new ConfigurationProperty.PropertyValue[l]);
 
                 final ConfigurationProperty.Builder authenticationType = new ConfigurationProperty.Builder().createFrom(template)
@@ -254,6 +252,60 @@ enum PropertyGenerators {
         return createHostUri(schemeToUse, hostToUse, portToUse);
     }
 
+    static <T extends AbstractSecuritySchemeDefinition> Optional<T> securityDefinition(final Swagger swagger, final ConnectorSettings connectorSettings,
+        final Class<T> type) {
+        final Map<String, SecuritySchemeDefinition> securityDefinitions = swagger.getSecurityDefinitions();
+
+        if (securityDefinitions == null || securityDefinitions.isEmpty()) {
+            return empty();
+        }
+
+        final Map<String, SecuritySchemeDefinition> supportedSecurityDefinitions = securityDefinitions.entrySet().stream()
+            .filter(e -> type.isInstance(e.getValue()))
+            .filter(e -> SupportedAuthenticationTypes.supports(e.getValue()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (supportedSecurityDefinitions.isEmpty()) {
+            // no supported security definitions of selected type defined
+            return empty();
+        }
+
+        final Map<String, String> configuredProperties = connectorSettings.getConfiguredProperties();
+        final String configuredAuthenticationType = configuredProperties.get(authenticationType.name());
+
+        if (supportedSecurityDefinitions.size() == 1 && configuredAuthenticationType == null) {
+            // we have only one, so we provide that one as the user hasn't
+            // expressed any preference
+            @SuppressWarnings("unchecked")
+            final T onlySecurityDefinitionPresent = (T) supportedSecurityDefinitions.values().iterator().next();
+
+            return Optional.of(onlySecurityDefinitionPresent);
+        }
+
+        if (configuredAuthenticationType == null) {
+            // we don't have a way to choose, no preference was given and there
+            // are zero or more than one security definitions present
+            return empty();
+        }
+
+        for (final Map.Entry<String, SecuritySchemeDefinition> securityDefinition : supportedSecurityDefinitions.entrySet()) {
+            // we have more than one supported security definition and the
+            // configured authentication type matches that definition
+            final int idx = configuredAuthenticationType.indexOf(':');
+
+            if (idx > 0 && securityDefinition.getKey().equals(configuredAuthenticationType.substring(idx + 1))) {
+                @SuppressWarnings("unchecked")
+                final T choosenSecurityDefinition = (T) securityDefinition.getValue();
+
+                return Optional.of(choosenSecurityDefinition);
+            }
+        }
+
+        // more than one security definition of the requested type is present
+        // and the configured authentication type doesn't match either of those
+        return empty();
+    }
+
     private static Optional<ConfigurationProperty> apiKeyProperty(final Swagger swagger, final ConfigurationProperty template,
         final ConnectorSettings connectorSettings,
         final Function<ApiKeyAuthDefinition, String> defaultValueExtractor) {
@@ -329,30 +381,6 @@ enum PropertyGenerators {
         final String name) {
         return securityDefinition(swagger, connectorSettings, OAuth2Definition.class).map(definition -> vendorExtension(definition, template, name))
             .orElse(empty());
-    }
-
-    private static <T extends AbstractSecuritySchemeDefinition> Optional<T> securityDefinition(final Swagger swagger, final ConnectorSettings connectorSettings,
-        final Class<T> type) {
-        final Map<String, SecuritySchemeDefinition> securityDefinitions = swagger.getSecurityDefinitions();
-
-        if (securityDefinitions == null) {
-            return empty();
-        }
-
-        final Optional<T> maybeSecurityDefinition = securityDefinitions.values().stream().filter(type::isInstance).map(type::cast).findFirst();
-        if (!maybeSecurityDefinition.isPresent()) {
-            return empty();
-        }
-
-        final Map<String, String> configuredProperties = connectorSettings.getConfiguredProperties();
-        final String configuredAuthenticationType = configuredProperties.get(authenticationType.name());
-
-        final T securityDefinition = maybeSecurityDefinition.get();
-        if (configuredAuthenticationType == null || configuredAuthenticationType.equals(securityDefinition.getType())) {
-            return maybeSecurityDefinition;
-        }
-
-        return empty();
     }
 
     private static Optional<ConfigurationProperty> vendorExtension(final SecuritySchemeDefinition definition,

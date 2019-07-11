@@ -17,7 +17,7 @@ import resolvers from '../resolvers';
 function getFilteredAndSortedIntegrations(
   integrations: IntegrationWithMonitoring[],
   activeFilters: IActiveFilter[],
-  currentSortType: string,
+  currentSortType: ISortType,
   isSortAscending: boolean
 ) {
   let filteredAndSortedIntegrations = integrations;
@@ -25,10 +25,10 @@ function getFilteredAndSortedIntegrations(
     const valueToLower = filter.value.toLowerCase();
     filteredAndSortedIntegrations = filteredAndSortedIntegrations.filter(
       (mi: IntegrationWithMonitoring) => {
-        if (filter.title === 'Name') {
+        if (filter.id === 'name') {
           return mi.integration.name.toLowerCase().includes(valueToLower);
         }
-        if (filter.title === 'Connection') {
+        if (filter.id === 'connection') {
           const connectionNames = mi.integration!.flows!.reduce(
             (acc, flow) => [
               ...acc,
@@ -52,7 +52,7 @@ function getFilteredAndSortedIntegrations(
     (miA, miB) => {
       const left = isSortAscending ? miA : miB;
       const right = isSortAscending ? miB : miA;
-      if (currentSortType === 'Name') {
+      if (currentSortType.id === 'name') {
         return left.integration.name.localeCompare(right.integration.name);
       }
       return left.integration!.currentState!.localeCompare(
@@ -112,7 +112,7 @@ export class IntegrationsPage extends React.Component {
       <WithConnections debounceWait={500}>
         {({ data: connectionsData }) => (
           <WithMonitoredIntegrations>
-            {({ data: integrationsData, hasData, error }) => (
+            {({ data: integrationsData, hasData, error, errorMessage }) => (
               <Translation ns={['integrations', 'shared']}>
                 {t => (
                   <WithListViewToolbarHelpers
@@ -143,16 +143,26 @@ export class IntegrationsPage extends React.Component {
                             i18nTitle={t('shared:Integrations')}
                             i18nDescription={t('integrationListDescription')}
                             i18nImport={t('shared:Import')}
-                            i18nManageCiCd={t('integrations:ManageCiCd')}
+                            i18nManageCiCd={t('ManageCiCd')}
                             i18nLinkCreateConnection={t(
                               'shared:linkCreateIntegration'
+                            )}
+                            i18nLinkCreateIntegrationTip={t(
+                              'integrationsEmptyState.createTip'
                             )}
                             i18nResultsCount={t('shared:resultsCount', {
                               count: filteredAndSortedIntegrations.length,
                             })}
+                            i18nEmptyStateInfo={t(
+                              'integrationsEmptyState.info'
+                            )}
+                            i18nEmptyStateTitle={t(
+                              'integrationsEmptyState.title'
+                            )}
                           >
                             <Integrations
                               error={error}
+                              errorMessage={errorMessage}
                               loading={!hasData}
                               integrations={filteredAndSortedIntegrations}
                             />

@@ -3,13 +3,17 @@
 import {
   Breadcrumb as PFBreadcrumb,
   BreadcrumbItem,
+  BreadcrumbItemProps,
   Level,
   LevelItem,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { AppBreadcrumb } from './AppBreadcrumb';
 
+export { BreadcrumbItem, BreadcrumbItemProps };
+
 export interface IBreadcrumbProps {
+  items?: Array<React.ReactElement<BreadcrumbItemProps>>;
   actions?: React.ReactNode;
 }
 
@@ -21,21 +25,24 @@ export interface IBreadcrumbProps {
  * It's suggested to use only anchors or spans as children node.
  */
 export const Breadcrumb: React.FunctionComponent<IBreadcrumbProps> = ({
+  items,
   actions,
   children,
 }) => {
-  const count = React.Children.count(children);
+  const childrenArray = React.Children.toArray(children);
+  const count = childrenArray.length;
+  items =
+    items ||
+    childrenArray.map((c, idx) => (
+      <BreadcrumbItem key={idx} isActive={idx === count - 1}>
+        {c}
+      </BreadcrumbItem>
+    ));
   return (
     <AppBreadcrumb>
       <Level gutter={'md'}>
         <LevelItem>
-          <PFBreadcrumb>
-            {React.Children.map(children, (c, idx) => (
-              <BreadcrumbItem key={idx} isActive={idx === count - 1}>
-                {c}
-              </BreadcrumbItem>
-            ))}
-          </PFBreadcrumb>
+          <PFBreadcrumb>{items}</PFBreadcrumb>
         </LevelItem>
         {actions && <LevelItem>{actions}</LevelItem>}
       </Level>

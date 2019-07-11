@@ -16,14 +16,18 @@
 package io.syndesis.connector.mongo;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.camel.Exchange;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.bson.Document;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.mongodb.client.model.CreateCollectionOptions;
 
 import io.syndesis.common.model.integration.Step;
@@ -31,15 +35,20 @@ import io.syndesis.common.model.integration.Step;
 @SuppressWarnings({ "PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert" })
 public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnectorTestSupport {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDBConnectorCappedCollectionConsumerTest.class);
+
+    private static HashSet<String> IDS = new HashSet<>();
     // **************************
     // Set up
     // **************************
 
-    @Override
-    public void doPreSetup() {
+    // JUnit will execute this method after the @BeforeClass of the superclass
+    @BeforeClass
+    public static void doCollectionSetup() {
         // The feature only works with capped collections!
         CreateCollectionOptions opts = new CreateCollectionOptions().capped(true).sizeInBytes(1024 * 1024);
         database.createCollection("test", opts);
+        LOG.debug("Created a capped collection named test");
     }
 
     @Override
@@ -58,33 +67,28 @@ public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnect
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedMessageCount(1);
         mock.expectedMessagesMatches((Exchange e) -> {
-            //try{
-                String json = e.getMessage().getBody(String.class);
-                System.out.println("RESULT: "+ json);
-                /*JsonNode jsonNode = MAPPER.readTree(json);
+            try{
+                Document doc = e.getMessage().getBody(Document.class);
+                JsonNode jsonNode = MAPPER.readTree(doc.toJson());
                 String _id = jsonNode.get("_id").asText();
-                String key = jsonNode.get("someKey").asText();
-                String value = jsonNode.get("someValue").asText();
-                // We may test if the json is well formatted, etc...
-                return _id != null && "someKey".equals(key) && "someValue".equals(value);   */
-                return true;
-            /*}catch(IOException ex) {
+                String value = jsonNode.get("someKey").asText();
+                return _id != null && "someValue".equals(value);
+            }catch(IOException ex) {
                 return false;
-            }*/
+            }
         });
         // Given
         Document doc = new Document();
         doc.append("someKey", "someValue");
         collection.insertOne(doc);
         // Then
-        System.out.println("MOCK "+ mock);
-        mock.assertIsSatisfied();        
+        mock.assertIsSatisfied();
     }
     
-    /*@Test
-    public void mongoTest2() throws Exception {
+    @Test
+    public void repeatMongoTest() throws Exception {
         // As we are tracking _id, any new insert should trigger the new document only
         mongoTest();
-    }*/
+    }
 
 }

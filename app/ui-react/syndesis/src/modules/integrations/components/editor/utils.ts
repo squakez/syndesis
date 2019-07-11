@@ -3,16 +3,17 @@ import {
   AGGREGATE,
   API_PROVIDER,
   BASIC_FILTER,
+  CHOICE,
   CONNECTOR,
   DATA_MAPPER,
   DataShapeKinds,
   ENDPOINT,
   EXTENSION,
-  getExtensionIcon,
+  FLOW,
   getNextAggregateStep,
+  getPreviousSteps,
   getPreviousStepWithDataShape,
-  getStepIcon,
-  getStepsLastPosition,
+  getSubsequentSteps,
   HIDE_FROM_STEP_SELECT,
   LOG,
   SPLIT,
@@ -26,6 +27,7 @@ import {
   ConnectorAction,
   DataShape,
   Extension,
+  IConnectionOverview,
   Step,
   StepKind,
 } from '@syndesis/models';
@@ -43,13 +45,17 @@ type StepKindHrefCallback = (
 ) => H.LocationDescriptorObject;
 
 export function getStepKind(step: Step): IUIStep['uiStepKind'] {
-  if (step.connection && step.connection.id === API_PROVIDER) {
+  if (
+    step.connection &&
+    step.connection.id === API_PROVIDER &&
+    !(step.metadata || {}).configured
+  ) {
     return API_PROVIDER;
   }
   return step.stepKind;
 }
 
-export function toUIStep(step: Step): IUIStep {
+export function toUIStep(step: Step | StepKind): IUIStep {
   const uiStepKind = getStepKind(step);
   const inputDataShape =
     step.action &&
@@ -68,16 +74,16 @@ export function toUIStep(step: Step): IUIStep {
           (step as StepKind).description ||
           (step as StepKind).extension!.description ||
           '',
-        icon: getStepIcon(process.env.PUBLIC_URL, step),
         inputDataShape,
+        isConfigRequired: false,
+        isTechPreview: false,
         metadata: {
           ...(step.extension!.metadata || {}),
           ...(step.metadata || {}),
         },
         name: step.name || step.extension!.name,
         outputDataShape,
-        properties: step.action!.descriptor!.propertyDefinitionSteps![0]
-          .properties,
+        properties: (step as StepKind).properties,
         title: step.name!,
         uiStepKind,
       };
@@ -88,11 +94,13 @@ export function toUIStep(step: Step): IUIStep {
       return {
         ...step,
         description:
-          (step as ConnectionOverview).description ||
+          (step as IConnectionOverview).description ||
           step.connection!.description ||
           '',
-        icon: getStepIcon(process.env.PUBLIC_URL, step),
         inputDataShape,
+        isConfigRequired: (step.connection as IConnectionOverview)
+          .isConfigRequired,
+        isTechPreview: (step.connection as IConnectionOverview).isTechPreview,
         metadata: {
           ...(step.connection!.metadata || {}),
           ...(step.metadata || {}),
@@ -117,8 +125,9 @@ export function toUIStep(step: Step): IUIStep {
       const name = step.name || step.stepKind || 'Step';
       return {
         ...(step as StepKind),
-        icon: getStepIcon(process.env.PUBLIC_URL, step),
         inputDataShape,
+        isConfigRequired: false,
+        isTechPreview: false,
         metadata: step.metadata || {},
         name,
         outputDataShape,
@@ -148,7 +157,17 @@ export function toUIIntegrationStepCollection(
 ): IUIIntegrationStep[] {
   return steps.map((step, position) => {
     let previousStepShouldDefineDataShape = false;
+    let previousStepShouldDefineDataShapePosition: number | undefined;
     let shouldAddDataMapper = false;
+    let restrictedDelete = false;
+
+    if (
+      step.connection &&
+      (step.connection!.connectorId! === FLOW ||
+        step.connection!.connectorId! === API_PROVIDER)
+    ) {
+      restrictedDelete = true;
+    }
     const isUnclosedSplit =
       step.stepKind === SPLIT &&
       getNextAggregateStep(steps, position) === undefined;
@@ -169,6 +188,7 @@ export function toUIIntegrationStepCollection(
         const prev = getPreviousStepWithDataShape(steps, position);
         if (
           prev &&
+          prev.stepKind !== CHOICE && // TODO: suppress this until we can also use the describe data page for a step syndesisio/syndesis#5456
           prev.action &&
           prev.action.descriptor &&
           prev.action.descriptor.outputDataShape
@@ -176,6 +196,9 @@ export function toUIIntegrationStepCollection(
           const prevOutDataShape = prev.action.descriptor.outputDataShape;
           if (DataShapeKinds.ANY === toDataShapeKinds(prevOutDataShape.kind!)) {
             previousStepShouldDefineDataShape = true;
+            previousStepShouldDefineDataShapePosition = steps.findIndex(
+              s => s.id === prev.id
+            );
           } else if (!isSameDataShape(inputDataShape, prevOutDataShape)) {
             shouldAddDataMapper = true;
           }
@@ -187,6 +210,8 @@ export function toUIIntegrationStepCollection(
       ...step,
       isUnclosedSplit,
       previousStepShouldDefineDataShape,
+      previousStepShouldDefineDataShapePosition,
+      restrictedDelete,
       shape,
       shouldAddDataMapper,
     };
@@ -220,6 +245,7 @@ export interface IGetStepHrefs {
   apiProviderHref: StepKindHrefCallback;
   connectionHref: StepKindHrefCallback;
   filterHref: StepKindHrefCallback;
+  choiceHref: StepKindHrefCallback;
   mapperHref: StepKindHrefCallback;
   templateHref: StepKindHrefCallback;
   stepHref: StepKindHrefCallback;
@@ -244,6 +270,8 @@ export const getStepHref = (
       );
     case BASIC_FILTER:
       return hrefs.filterHref(step as StepKind, params, state);
+    case CHOICE:
+      return hrefs.choiceHref(step as StepKind, params, state);
     case DATA_MAPPER:
       return hrefs.mapperHref(step as StepKind, params, state);
     case TEMPLATE:
@@ -263,13 +291,15 @@ export function mergeConnectionsSources(
     ...connections.map(connection =>
       toUIStep({
         connection,
+        // we copy over the name and description from the connection to be sure to show these instead of the connector's
+        description: connection.description,
         name: connection.name,
         stepKind: ENDPOINT,
       } as StepKind)
     ),
     ...extensions.reduce(
       (extentionsByAction, extension) => {
-        extension.actions.forEach(a => {
+        (extension.actions || []).forEach(a => {
           let properties = {};
           if (
             a.descriptor &&
@@ -289,7 +319,7 @@ export function mergeConnectionsSources(
                 configuredProperties: undefined,
                 description: a.description || '',
                 extension,
-                icon: `${process.env.PUBLIC_URL}${getExtensionIcon(extension)}`,
+                icon: extension.icon,
                 metadata: (extension.metadata as { [name: string]: any }) || {},
                 name: a.name,
                 properties,
@@ -402,16 +432,23 @@ export function visibleStepsByPosition(
   position: number,
   flowSteps: Step[]
 ) {
-  const previousSteps = flowSteps.slice(0, position);
-  const subsequentSteps = flowSteps.slice(position + 1);
+  const previousSteps = getPreviousSteps(flowSteps, position);
+  const subsequentSteps = getSubsequentSteps(flowSteps, position - 1);
   return filterStepsByPosition(
     steps,
     position,
-    position === 0,
-    getStepsLastPosition(flowSteps) === position
+    previousSteps.length === 0,
+    subsequentSteps.length === 0
   ).filter(s => {
-    if (typeof s.visible === 'function') {
-      return s.visible(position, previousSteps, subsequentSteps);
+    if (Array.isArray(s.visible) && s.visible.length > 0) {
+      const matches = s.visible.map(visible =>
+        visible(
+          position,
+          previousSteps as StepKind[],
+          subsequentSteps as StepKind[]
+        )
+      );
+      return matches.find(m => !m) === undefined;
     }
     return true;
   });

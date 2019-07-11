@@ -1,3 +1,9 @@
+import { Omit } from 'react-router';
+import {
+  Connector,
+  ConnectionBulletinBoard,
+  ConnectionOverview,
+} from '../dist';
 import {
   ConfigurationProperty,
   Connection,
@@ -57,6 +63,17 @@ export interface IConfigurationProperty extends ConfigurationProperty {
   [name: string]: any;
 }
 
+export interface IConnectionOverview
+  extends Omit<ConnectionOverview, 'connector'> {
+  connector?: IConnector;
+  isConfigRequired: boolean;
+  isTechPreview: boolean;
+}
+
+export interface IConnector extends Connector {
+  isTechPreview: boolean;
+}
+
 // Extended connection interface to add support for the 'iconFile' property
 export interface IConnectionWithIconFile extends Connection {
   icon?: any;
@@ -92,11 +109,17 @@ export interface IntegrationMonitoring {
   podName: string;
 }
 
+export type isVisibleFunction = (
+  position: number,
+  previous: StepKind[],
+  subsequent: StepKind[]
+) => boolean;
+
 export interface StepKind extends Step {
   name: string;
   description: string;
   properties: any;
-  visible?: (position: number, previous: Step[], subsequent: Step[]) => boolean;
+  visible?: isVisibleFunction[];
 }
 
 export interface IListResult<T> {

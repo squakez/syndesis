@@ -15,11 +15,25 @@
  */
 package io.syndesis.server.openshift;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
+
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.Doneable;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
+import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinition;
@@ -41,19 +55,6 @@ import io.syndesis.common.util.Names;
 import io.syndesis.common.util.SyndesisServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BiConsumer;
 
 @SuppressWarnings({"PMD.BooleanGetMethodName", "PMD.LocalHomeNamingConvention", "PMD.GodClass"})
 public class OpenShiftServiceImpl implements OpenShiftService {
@@ -263,11 +264,26 @@ public class OpenShiftServiceImpl implements OpenShiftService {
                             .withName("jolokia")
                             .withContainerPort(8778)
                         .endPort()
+                        .addNewPort()
+                            .withName("metrics")
+                            .withContainerPort(9779)
+                        .endPort()
+                        .addNewPort()
+                            .withName("management")
+                            .withContainerPort(8081)
+                        .endPort()
                         .addNewVolumeMount()
                             .withName("secret-volume")
                             .withMountPath("/deployments/config")
                             .withReadOnly(false)
                         .endVolumeMount()
+                        .withLivenessProbe(new ProbeBuilder()
+                            .withInitialDelaySeconds(config.getIntegrationLivenessProbeInitialDelaySeconds())
+                            .withNewHttpGet()
+                                .withPath("/health")
+                                .withNewPort(8081)
+                            .endHttpGet()
+                            .build())
                         .endContainer()
                         .addNewVolume()
                             .withName("secret-volume")
@@ -292,8 +308,6 @@ public class OpenShiftServiceImpl implements OpenShiftService {
             .endSpec()
             .done();
     }
-
-
 
     private boolean removeDeploymentConfig(String projectName) {
         return openShiftClient.deploymentConfigs().withName(projectName).delete();

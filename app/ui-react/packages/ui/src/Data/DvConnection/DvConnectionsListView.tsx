@@ -1,36 +1,44 @@
 import * as H from '@syndesis/history';
+import { EmptyState } from 'patternfly-react';
 import * as React from 'react';
-import { ButtonLink, Container } from '../../Layout';
+import { ButtonLink, Container, PageSection } from '../../Layout';
 import { IListViewToolbarProps, ListViewToolbar } from '../../Shared';
-import { toTestId } from '../../utils';
 
 export interface IDvConnectionsListViewProps extends IListViewToolbarProps {
   linkToConnectionCreate: H.LocationDescriptor;
   i18nLinkCreateConnection: string;
+  i18nEmptyStateInfo: string;
+  i18nEmptyStateTitle: string;
 }
 
-export class DvConnectionsListView extends React.Component<
+export const DvConnectionsListView: React.FunctionComponent<
   IDvConnectionsListViewProps
-> {
-  public render() {
-    return (
-      <>
-        <ListViewToolbar {...this.props}>
-          <div className="form-group">
-            <ButtonLink
-              data-testid={`${toTestId(
-                'DvConnectionsListView',
-                'create-connection-button'
-              )}`}
-              href={this.props.linkToConnectionCreate}
-              as={'primary'}
-            >
-              {this.props.i18nLinkCreateConnection}
-            </ButtonLink>
-          </div>
-        </ListViewToolbar>
-        <Container>{this.props.children}</Container>
-      </>
-    );
-  }
-}
+> = props => {
+  return (
+    <PageSection noPadding={true}>
+      {props.resultsCount > 0 ? (
+        <PageSection>
+          <ListViewToolbar {...props}>
+            <div className="form-group">
+              <ButtonLink
+                data-testid={
+                  'dv-connections-list-view-create-connection-button'
+                }
+                href={props.linkToConnectionCreate}
+                as={'primary'}
+              >
+                {props.i18nLinkCreateConnection}
+              </ButtonLink>
+            </div>
+          </ListViewToolbar>
+          <Container>{props.children}</Container>
+        </PageSection>
+      ) : (
+        <EmptyState>
+          <EmptyState.Title>{props.i18nEmptyStateTitle}</EmptyState.Title>
+          <EmptyState.Info>{props.i18nEmptyStateInfo}</EmptyState.Info>
+        </EmptyState>
+      )}
+    </PageSection>
+  );
+};

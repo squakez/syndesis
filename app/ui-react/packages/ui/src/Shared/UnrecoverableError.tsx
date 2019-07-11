@@ -1,9 +1,7 @@
-import { Text } from '@patternfly/react-core';
 import { EmptyState } from 'patternfly-react';
 import { useState } from 'react';
 import * as React from 'react';
 import { ButtonLink, Container } from '../Layout';
-import { toTestId } from '../utils';
 
 export interface IUnrecoverableErrorProps {
   i18nTitle: string;
@@ -37,7 +35,7 @@ export const UnrecoverableError: React.FC<IUnrecoverableErrorProps> = ({
         <EmptyState.Help>{i18nHelp}</EmptyState.Help>
         <EmptyState.Action>
           <ButtonLink
-            data-testid={`${toTestId('UnrecoverableError', 'refresh-button')}`}
+            data-testid={'unrecoverable-error-refresh-button'}
             href={'.'}
             as={'primary'}
             size={'lg'}
@@ -47,21 +45,19 @@ export const UnrecoverableError: React.FC<IUnrecoverableErrorProps> = ({
         </EmptyState.Action>
         <EmptyState.Action secondary={true}>
           {error && (
-            <ButtonLink
-              data-testid={`${toTestId(
-                'UnrecoverableError',
-                'show-error-button'
-              )}`}
-              onClick={toggleErrorInfo}
-            >
-              {i18nShowErrorInfoLabel}
-            </ButtonLink>
+            <>
+              <ButtonLink
+                data-testid={'unrecoverable-error-show-error-button'}
+                onClick={toggleErrorInfo}
+                style={{ marginBottom: 0 }}
+              >
+                {i18nShowErrorInfoLabel}
+              </ButtonLink>
+              &nbsp;
+            </>
           )}
           <a
-            data-testid={`${toTestId(
-              'UnrecoverableError',
-              'report-issue-link'
-            )}`}
+            data-testid={'unrecoverable-error-report-issue-link'}
             className={'btn btn-default'}
             href={
               'https://github.com/syndesisio/syndesis/issues/new?template=simple.md&labels=cat/bug&title=Error%20report'
@@ -71,11 +67,19 @@ export const UnrecoverableError: React.FC<IUnrecoverableErrorProps> = ({
           </a>
         </EmptyState.Action>
         {showErrorInfo && error && (
-          <EmptyState.Help style={{ textAlign: 'left' }}>
-            <Text>
-              {error.name}: {error.message}
-            </Text>
-            {errorInfo && <pre>{errorInfo.componentStack}</pre>}
+          <EmptyState.Help
+            style={{
+              background: 'rgba(255, 255, 255, 0.8)',
+              border: '1px solid #dedede',
+              marginTop: 10,
+              padding: 10,
+              textAlign: 'left',
+            }}
+          >
+            {error.name}: {error.message}
+            {errorInfo && (
+              <pre style={{ marginTop: 10 }}>{errorInfo.componentStack}</pre>
+            )}
           </EmptyState.Help>
         )}
       </EmptyState>

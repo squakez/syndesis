@@ -9,6 +9,7 @@ import {
   IntegrationDetailHistoryListView,
   IntegrationDetailHistoryListViewItem,
   IntegrationDetailHistoryListViewItemActions,
+  IntegrationExposedURL,
   PageLoader,
 } from '@syndesis/ui';
 import { WithLoader, WithRouteData } from '@syndesis/utils';
@@ -22,6 +23,7 @@ import {
   WithIntegrationActions,
 } from '../../components';
 import { WithDeploymentActions } from '../../components/WithDeploymentActions';
+import resolvers from '../../resolvers';
 import { IDetailsRouteParams, IDetailsRouteState } from './interfaces';
 
 /**
@@ -45,16 +47,17 @@ export class DetailsPage extends React.Component {
                       integrationId={integrationId}
                       initialValue={integration}
                     >
-                      {({ data, hasData, error }) => (
+                      {({ data, hasData, error, errorMessage }) => (
                         <WithLoader
                           error={error}
                           loading={!hasData}
                           loaderChildren={<PageLoader />}
-                          errorChildren={<ApiError />}
+                          errorChildren={<ApiError error={errorMessage!} />}
                         >
                           {() => (
                             <WithIntegrationActions
                               integration={data.integration}
+                              postDeleteHref={resolvers.list()}
                             >
                               {({
                                 ciCdAction,
@@ -81,6 +84,9 @@ export class DetailsPage extends React.Component {
                                     />
                                     <IntegrationDetailSteps
                                       integration={data.integration}
+                                    />
+                                    <IntegrationExposedURL
+                                      url={data.integration.url}
                                     />
                                     <WithIntegrationHelpers>
                                       {({ setAttributes }) => {

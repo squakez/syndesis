@@ -1,9 +1,10 @@
+export type FetchMethod = 'GET' | 'PATCH' | 'PUT' | 'POST' | 'DELETE';
 export interface IFetchHeaders {
   [s: string]: string;
 }
 export interface IFetch {
   url: string;
-  method: 'GET' | 'PATCH' | 'PUT' | 'POST' | 'DELETE';
+  method: FetchMethod;
   headers?: IFetchHeaders;
   body?: any;
 
@@ -56,6 +57,7 @@ export function callFetch({
   includeReferrerPolicy = true,
   stringifyBody = true,
 }: IFetch) {
+  headers = { ...headers };
   if (includeAccept && !(acceptId in headers)) {
     headers[acceptId] = accept;
   }
@@ -71,6 +73,7 @@ export function callFetch({
     stringifyBody
       ? JSON.stringify(body)
       : body;
+
   return fetch(url, {
     body: data,
     cache: 'no-cache',

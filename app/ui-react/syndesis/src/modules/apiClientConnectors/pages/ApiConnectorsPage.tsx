@@ -21,7 +21,7 @@ import routes from '../routes';
 function getFilteredAndSortedApiConnectors(
   apiConnectors: Connector[],
   activeFilters: IActiveFilter[],
-  currentSortType: string,
+  currentSortType: ISortType,
   isSortAscending: boolean
 ) {
   let filteredAndSorted = apiConnectors;
@@ -83,7 +83,7 @@ export default class ApiConnectorsPage extends React.Component {
         {({ pushNotification }) => {
           return (
             <WithApiConnectors>
-              {({ data, hasData, error }) => (
+              {({ data, hasData, error, errorMessage }) => (
                 <WithListViewToolbarHelpers
                   defaultFilterType={filterByName}
                   defaultSortType={sortByName}
@@ -139,7 +139,9 @@ export default class ApiConnectorsPage extends React.Component {
                                     }}
                                   />
                                 }
-                                errorChildren={<ApiError />}
+                                errorChildren={
+                                  <ApiError error={errorMessage!} />
+                                }
                               >
                                 {() => (
                                   <WithApiConnectorHelpers>

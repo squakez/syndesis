@@ -1,7 +1,9 @@
+// tslint:disable react-unused-props-and-state
+// remove the above line after this goes GA https://github.com/Microsoft/tslint-microsoft-contrib/pull/824
 import { Text } from '@patternfly/react-core';
 import { Card, Label } from 'patternfly-react';
 import * as React from 'react';
-import { toTestId } from '../../utils';
+import { toValidHtmlId } from '../../helpers';
 import './DvConnectionCard.css';
 
 export enum ConnectionStatus {
@@ -13,76 +15,64 @@ export interface IDvConnectionCardProps {
   name: string;
   description: string;
   dvStatus: string;
-  icon: string;
+  icon: React.ReactNode;
   selected: boolean;
   onSelectionChanged: (connName: string, isSelected: boolean) => void;
 }
-export interface IDvConnectionCardState {
-  isSelected: boolean;
-}
 
-export class DvConnectionCard extends React.PureComponent<
-  IDvConnectionCardProps,
-  IDvConnectionCardState
-> {
-  public constructor(props: IDvConnectionCardProps) {
-    super(props);
-    this.state = {
-      isSelected: props.selected, // initial item selection
-    };
-    this.toggleSelected = this.toggleSelected.bind(this);
-  }
+export const DvConnectionCard: React.FunctionComponent<
+  IDvConnectionCardProps
+> = props => {
 
-  public toggleSelected = (connName: string) => (event: any) => {
+  const [isSelected, setIsSelected] = React.useState(props.selected);
+
+
+  const doToggleSelected = (connName: string) => (event: any) => {
     // User can only select active connections
-    if (this.props.dvStatus === ConnectionStatus.ACTIVE) {
-      this.setState({
-        isSelected: !this.state.isSelected,
-      });
-      this.props.onSelectionChanged(connName, !this.state.isSelected);
+    if (props.dvStatus === ConnectionStatus.ACTIVE) {
+      setIsSelected(!isSelected);
+      props.onSelectionChanged(connName, !isSelected);
     }
   };
 
-  public render() {
-    return (
-      <div
-        className={'dv-connection-card'}
-        onClick={this.toggleSelected(this.props.name)}
+  return (
+    <div
+      className={'dv-connection-card'}
+      onClick={doToggleSelected(props.name)}
+    >
+      <Card
+        data-testid={`dv-connection-card-${toValidHtmlId(
+          props.name
+        )}-card`}
+        matchHeight={true}
+        accented={props.selected}
       >
-        <Card matchHeight={true} accented={this.state.isSelected}>
-          <Card.Body>
-            <div className="dv-connection-card__status">
-              <Label
-                type={
-                  this.props.dvStatus === ConnectionStatus.ACTIVE
-                    ? 'success'
-                    : 'danger'
-                }
-              >
-                {this.props.dvStatus}
-              </Label>
+        <Card.Body>
+          <div className="dv-connection-card__status">
+            <Label
+              type={
+                props.dvStatus === ConnectionStatus.ACTIVE
+                  ? 'success'
+                  : 'danger'
+              }
+            >
+              {props.dvStatus}
+            </Label>
+          </div>
+          <div className={'dv-connection-card__content'}>
+            <div className="dv-connection-card__icon">{props.icon}</div>
+            <div
+              className="dv-connection-card__title h2"
+              data-testid={'dv-connection-card--title'}
+            >
+              {props.name}
             </div>
-            <div className={'dv-connection-card__content'}>
-              <div className="dv-connection-card__icon">
-                <img src={this.props.icon} alt={this.props.name} width={46} />
-              </div>
-              <div
-                className="dv-connection-card__title h2"
-                data-testid={`${toTestId(
-                  'DvConnectionCard',
-                  this.props.name,
-                  'title'
-                )}`}
-              >
-                {this.props.name}
-              </div>
-              <Text className="dv-connection-card__description">
-                {this.props.description}
-              </Text>
-            </div>
-          </Card.Body>
-        </Card>
-      </div>
-    );
-  }
+            <Text className="dv-connection-card__description">
+              {props.description}
+            </Text>
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  );
 }

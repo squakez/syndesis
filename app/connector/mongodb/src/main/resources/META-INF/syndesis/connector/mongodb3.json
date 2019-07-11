@@ -126,6 +126,7 @@
                 "javaType": "boolean",
                 "kind": "path",
                 "labelHint": "persistentTailTracking",
+                "placeholder": "false",
                 "required": false,
                 "secret": false,
                 "type": "boolean"
@@ -149,6 +150,7 @@
                 "javaType": "java.lang.String",
                 "kind": "path",
                 "labelHint": "tailTrackDb",
+                "placeholder": "tailTrackDb",
                 "required": false,
                 "secret": false,
                 "type": "string"
@@ -160,6 +162,7 @@
                 "javaType": "java.lang.String",
                 "kind": "path",
                 "labelHint": "tailTrackCollection",
+                "placeholder": "tailTrackCollection",
                 "required": false,
                 "secret": false,
                 "type": "string"
@@ -171,6 +174,7 @@
                 "javaType": "java.lang.String",
                 "kind": "path",
                 "labelHint": "tailTrackField",
+                "placeholder": "tailTrackField",
                 "required": false,
                 "secret": false,
                 "type": "string"

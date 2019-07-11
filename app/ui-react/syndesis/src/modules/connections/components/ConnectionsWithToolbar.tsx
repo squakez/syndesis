@@ -1,4 +1,4 @@
-import { Connection } from '@syndesis/models';
+import { IConnectionOverview } from '@syndesis/models';
 import {
   ConnectionsListView,
   IActiveFilter,
@@ -14,16 +14,16 @@ import resolvers from '../resolvers';
 import { Connections, IConnectionsProps } from './Connections';
 
 function getFilteredAndSortedConnections(
-  connections: Connection[],
+  connections: IConnectionOverview[],
   activeFilters: IActiveFilter[],
-  currentSortType: string,
+  currentSortType: ISortType,
   isSortAscending: boolean
 ) {
   let filteredAndSortedConnections = connections;
   activeFilters.forEach((filter: IActiveFilter) => {
     const valueToLower = filter.value.toLowerCase();
     filteredAndSortedConnections = filteredAndSortedConnections.filter(
-      (c: Connection) => c.name.toLowerCase().includes(valueToLower)
+      (c: IConnectionOverview) => c.name.toLowerCase().includes(valueToLower)
     );
   });
 
@@ -102,6 +102,7 @@ export class ConnectionsWithToolbar extends React.Component<
                   {this.props.children}
                   <Connections
                     error={this.props.error}
+                    errorMessage={this.props.errorMessage}
                     includeConnectionMenu={this.props.includeConnectionMenu}
                     loading={this.props.loading}
                     connections={filteredAndSortedConnections}

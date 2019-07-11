@@ -20,13 +20,13 @@
   <parent>
     <groupId>io.syndesis</groupId>
     <artifactId>syndesis-parent</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <groupId>io.syndesis.ui</groupId>
   <artifactId>ui-react</artifactId>
-  <version>1.7-SNAPSHOT</version>
+  <version>1.8-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>UI React</name>
@@ -66,19 +66,6 @@
           <followSymLinks>false</followSymLinks>
           <filesets>
             <fileset>
-              <directory>src</directory>
-              <includes>
-                <include>config.json</include>
-                <include>config.json.bak</include>
-              </includes>
-            </fileset>
-            <fileset>
-              <directory>node_modules</directory>
-              <includes>
-                <include>**/*</include>
-              </includes>
-            </fileset>
-            <fileset>
               <directory>dist</directory>
               <includes>
                 <include>**/*</include>
@@ -91,17 +78,10 @@
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
         <executions>
+
           <execution>
-            <id>install node and npm</id>
-            <goals>
-              <goal>install-node-and-npm</goal>
-            </goals>
-            <configuration>
-              <nodeVersion>${node.version}</nodeVersion>
-            </configuration>
-          </execution>
-          <execution>
-            <id>install yarn</id>
+            <id>install-node-and-yarn</id>
+            <phase>initialize</phase>
             <goals>
               <goal>install-node-and-yarn</goal>
             </goals>
@@ -110,8 +90,10 @@
               <yarnVersion>${yarn.version}</yarnVersion>
             </configuration>
           </execution>
+
           <execution>
-            <id>yarn install</id>
+            <id>yarn-install</id>
+            <phase>compile</phase>
             <goals>
               <goal>yarn</goal>
             </goals>
@@ -121,56 +103,41 @@
           </execution>
 
           <execution>
-            <id>Install dependencies</id>
-            <goals>
-              <goal>yarn</goal>
-            </goals>
-            <configuration>
-              <arguments>install --frozen-lockfile</arguments>
-            </configuration>
-          </execution>
-
-          <execution>
-            <id>Lint project</id>
+            <id>yarn-lint</id>
+            <phase>verify</phase>
             <goals>
               <goal>yarn</goal>
             </goals>
             <configuration>
               <arguments>lint</arguments>
+              <yarnInheritsProxyConfigFromMaven>false</yarnInheritsProxyConfigFromMaven>
             </configuration>
           </execution>
 
           <execution>
-            <id>Build project</id>
+            <id>yarn-build</id>
+            <phase>compile</phase>
             <goals>
               <goal>yarn</goal>
             </goals>
             <configuration>
               <arguments>build</arguments>
+               <yarnInheritsProxyConfigFromMaven>false</yarnInheritsProxyConfigFromMaven>
             </configuration>
           </execution>
 
           <execution>
-            <id>Run tests</id>
+            <id>yarn-test</id>
             <goals>
               <goal>yarn</goal>
             </goals>
+            <phase>test</phase>
             <configuration>
               <arguments>test</arguments>
               <skip>${skipTests}</skip>
+              <yarnInheritsProxyConfigFromMaven>false</yarnInheritsProxyConfigFromMaven>
             </configuration>
           </execution>
-<!-- Very slow and probably not needed on staging
-          <execution>
-            <id>Build docs</id>
-            <goals>
-              <goal>yarn</goal>
-            </goals>
-            <configuration>
-              <arguments>build-storybook</arguments>
-            </configuration>
-          </execution>
--->
         </executions>
       </plugin>
     </plugins>
@@ -220,7 +187,7 @@
             <executions>
               <execution>
                 <id>set https proxy</id>
-                <phase>initialize</phase>
+                <phase>generate-sources</phase>
                 <goals>
                   <goal>yarn</goal>
                 </goals>
@@ -230,7 +197,7 @@
               </execution>
               <execution>
                 <id>set http proxy</id>
-                <phase>initialize</phase>
+                <phase>generate-sources</phase>
                 <goals>
                   <goal>yarn</goal>
                 </goals>
@@ -240,7 +207,7 @@
               </execution>
               <execution>
                 <id>set maxconn</id>
-                <phase>initialize</phase>
+                <phase>generate-sources</phase>
                 <goals>
                   <goal>yarn</goal>
                 </goals>
@@ -267,18 +234,8 @@
             <artifactId>frontend-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>set registry</id>
-                <phase>initialize</phase>
-                <goals>
-                  <goal>npm</goal>
-                </goals>
-                <configuration>
-                  <arguments>config set registry ${custom-registry}</arguments>
-                </configuration>
-              </execution>
-              <execution>
                 <id>yarn set registry</id>
-                <phase>initialize</phase>
+                <phase>generate-sources</phase>
                 <goals>
                   <goal>yarn</goal>
                 </goals>
@@ -301,7 +258,7 @@
             <executions>
               <execution>
                 <id>yarn set no-strict ssl</id>
-                <phase>initialize</phase>
+                <phase>generate-sources</phase>
                 <goals>
                   <goal>yarn</goal>
                 </goals>
@@ -324,27 +281,57 @@
       <build>
         <plugins>
           <plugin>
+            <groupId>com.googlecode.maven-download-plugin</groupId>
+            <artifactId>download-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>download-node-sass</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>wget</goal>
+                </goals>
+                <configuration>
+                  <url>${sass-binary-site}/v${node-sass-version}/${os.type}-x64-64_binding.node</url>
+                  <outputFileName>binding.node</outputFileName>
+                  <outputDirectory>${project.build.directory}/${os.type}-x64-64</outputDirectory>
+                </configuration>
+              </execution>
+              <execution>
+                <id>download-iltorb</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>wget</goal>
+                </goals>
+                <configuration>
+                  <url>${iltorb-binary-site}/v${iltorb-version}/iltorb-v${iltorb-version}-node-v64-${os.type}-x64.tar.gz</url>
+                  <outputFileName>45aa7d-iltorb-v${iltorb-version}-node-v64-${os.type}-x64.tar.gz</outputFileName>
+                  <outputDirectory>${user.home}/.npm/_prebuilds/</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>com.github.eirslett</groupId>
             <artifactId>frontend-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>yarn set sass binary url</id>
-                <phase>initialize</phase>
+                <id>yarn unset sass binary url</id>
+                <phase>generate-sources</phase>
                 <goals>
-                  <goal>npm</goal>
+                  <goal>yarn</goal>
                 </goals>
                 <configuration>
-                  <arguments>config set sass-binary-site ${sass-binary-site}</arguments>
+                  <arguments>config delete sass-binary-site</arguments>
                 </configuration>
               </execution>
               <execution>
-                <id>install node-sass</id>
-                <phase>initialize</phase>
+                <id>yarn set sass binary dir</id>
+                <phase>generate-sources</phase>
                 <goals>
-                  <goal>npm</goal>
+                  <goal>yarn</goal>
                 </goals>
                 <configuration>
-                  <arguments>install --global-style node-sass@4.9.0 ${npm-verbose} --max-sockets=30 --fetch-retry-mintimeout=60000 --fetch-retries=10</arguments>
+                  <arguments>config set sass-binary-path ${project.build.directory}/linux-x64-64/binding.node</arguments>
                 </configuration>
               </execution>
             </executions>
@@ -364,40 +351,17 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-clean-plugin</artifactId>
-            <configuration combine.self="override">
-              <followSymLinks>false</followSymLinks>
-              <filesets>
-                <fileset>
-                  <directory>dist</directory>
-                  <includes>
-                    <include>**/*</include>
-                  </includes>
-                </fileset>
-              </filesets>
-            </configuration>
-          </plugin>
-          <plugin>
             <groupId>com.github.eirslett</groupId>
             <artifactId>frontend-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>yarn ng lint</id>
+                <id>yarn-lint</id>
                 <phase />
               </execution>
+
               <execution>
-                <id>yarn ng test</id>
+                <id>yarn-test</id>
                 <phase />
-              </execution>
-              <execution>
-                <id>yarn ng build</id>
-                <goals>
-                  <goal>yarn</goal>
-                </goals>
-                <configuration>
-                  <arguments>build:flash</arguments>
-                </configuration>
               </execution>
             </executions>
           </plugin>
@@ -434,7 +398,7 @@
               <buildStrategy>docker</buildStrategy>
               <images>
                 <image>
-                  <name>syndesis/syndesis-ui:latest-react</name>
+                  <name>${image.ui}</name>
                   <build>
                     <assembly>
                       <inline>
@@ -451,6 +415,166 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+
+    <profile>
+      <id>non-ui-related-so-disabled</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+              <execution>
+                <id>basepom.default-it</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+              <execution>
+                <id>attach-javadocs</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.ning.maven.plugins</groupId>
+            <artifactId>maven-dependency-versions-check-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.hubspot.maven.plugins</groupId>
+            <artifactId>dependency-management-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.hubspot.maven.plugins</groupId>
+            <artifactId>dependency-scope-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.basepom.maven</groupId>
+            <artifactId>duplicate-finder-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-pmd-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>basepom.default</id>
+                <phase />
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>macosx</id>
+      <activation>
+        <os><family>mac</family></os>
+      </activation>
+      <properties>
+        <os.type>darwin</os.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>linux</id>
+      <activation>
+        <os><name>Linux</name></os>
+      </activation>
+      <properties>
+        <os.type>linux</os.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os><name>Windows</name></os>
+      </activation>
+      <properties>
+        <os.type>win32</os.type>
+      </properties>
     </profile>
   </profiles>
 

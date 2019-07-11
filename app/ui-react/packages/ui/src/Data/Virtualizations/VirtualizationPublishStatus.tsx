@@ -1,9 +1,12 @@
-import { Label } from 'patternfly-react';
+import { Label, Spinner } from 'patternfly-react';
 import * as React from 'react';
 import {
   BUILDING,
   CANCELLED,
   CONFIGURING,
+  DELETE_DONE,
+  DELETE_REQUEUE,
+  DELETE_SUBMITTED,
   DEPLOYING,
   FAILED,
   NOTFOUND,
@@ -17,41 +20,64 @@ export interface IVirtualizationPublishStatusProps {
   currentState?: VirtualizationPublishState;
   i18nPublished: string;
   i18nUnpublished: string;
+  i18nPublishInProgress: string;
+  i18nUnpublishInProgress: string;
   i18nError: string;
 }
 
-export class VirtualizationPublishStatus extends React.Component<
+export const VirtualizationPublishStatus: React.FunctionComponent<
   IVirtualizationPublishStatusProps
-> {
-  public render() {
-    const labelType =
-      this.props.currentState === FAILED
-        ? 'danger'
-        : this.props.currentState === RUNNING
+> = props => {
+
+  const labelType =
+    props.currentState === FAILED
+      ? 'danger'
+      : props.currentState === RUNNING
         ? 'primary'
         : 'default';
-    let label = NOTFOUND; // default to not found
-    switch (this.props.currentState) {
-      case RUNNING:
-        label = this.props.i18nPublished;
-        break;
-      case CANCELLED:
-      case NOTFOUND:
-        label = this.props.i18nUnpublished;
-        break;
-      case FAILED:
-        label = this.props.i18nError;
-        break;
-      case SUBMITTED:
-      case CONFIGURING:
-      case BUILDING:
-        label = DEPLOYING;
-        break;
-    }
-    return (
-      <Label className={'virtualization-publish-status-label'} type={labelType}>
-        {label}
-      </Label>
-    );
+  let label = '';
+  let inProgressMsg = '';
+  switch (props.currentState) {
+    case RUNNING:
+      label = props.i18nPublished;
+      break;
+    case FAILED:
+      label = props.i18nError;
+      break;
+    case NOTFOUND:
+      label = props.i18nUnpublished;
+      break;
+    case SUBMITTED:
+      inProgressMsg = props.i18nPublishInProgress;
+      break;
+    case CANCELLED:
+    case DELETE_SUBMITTED:
+    case DELETE_REQUEUE:
+    case DELETE_DONE:
+      inProgressMsg = props.i18nUnpublishInProgress;
+      break;
+    case CONFIGURING:
+    case BUILDING:
+    case DEPLOYING:
+      label = DEPLOYING;
+      break;
   }
+
+  return (
+    <>
+      {inProgressMsg.length > 0 ? (
+        <>
+          <Spinner loading={true} inline={true} />
+          {inProgressMsg}&nbsp;&nbsp;
+          </>
+      ) : (
+          <Label
+            className={'virtualization-publish-status-label'}
+            type={labelType}
+          >
+            {label}
+          </Label>
+        )}
+    </>
+  );
 }

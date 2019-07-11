@@ -1,59 +1,17 @@
-import { ConnectionOverview } from '@syndesis/models';
 import * as React from 'react';
 import { IFetchState } from './Fetch';
 import { ServerEventsContext } from './ServerEventsContext';
 import { SyndesisFetch } from './SyndesisFetch';
+import { transformConnectionResponse } from './useConnection';
+import {
+  getConnectionsForDisplay,
+  getConnectionsWithFromAction,
+  getConnectionsWithToAction,
+  IConnectionsFetchResponse,
+  IConnectionsResponse,
+} from './useConnections';
 import { WithChangeListener } from './WithChangeListener';
 import { IChangeEvent } from './WithServerEvents';
-
-export function getConnectionsForDisplay(connections: ConnectionOverview[]) {
-  return connections.filter(
-    c => !c.metadata || !c.metadata['hide-from-connection-pages']
-  );
-}
-
-export function getConnectionsWithFromAction(
-  connections: ConnectionOverview[]
-) {
-  return connections.filter(connection => {
-    if (!connection.connector) {
-      // safety net
-      return true;
-    }
-    return connection.connector.actions.some(action => {
-      return action.pattern === 'From';
-    });
-  });
-}
-
-export function getConnectionsWithToAction(connections: ConnectionOverview[]) {
-  return connections.filter(connection => {
-    if (!connection.connector) {
-      // safety net
-      return true;
-    }
-    if (connection.connectorId === 'api-provider') {
-      // api provider can be used only for From actions
-      return false;
-    }
-    return connection.connector.actions.some(action => {
-      return action.pattern === 'To';
-    });
-  });
-}
-
-export interface IConnectionsFetchResponse {
-  readonly items: ConnectionOverview[];
-  readonly totalCount: number;
-}
-
-export interface IConnectionsResponse {
-  readonly connectionsForDisplay: ConnectionOverview[];
-  readonly connectionsWithToAction: ConnectionOverview[];
-  readonly connectionsWithFromAction: ConnectionOverview[];
-  readonly dangerouslyUnfilteredConnections: ConnectionOverview[];
-  readonly totalCount: number;
-}
 
 export interface IWithConnectionsProps {
   disableUpdates?: boolean;
@@ -64,15 +22,14 @@ export interface IWithConnectionsProps {
 export function transformResponse(
   response: IFetchState<IConnectionsFetchResponse>
 ): IFetchState<IConnectionsResponse> {
+  const connections = response.data.items.map(transformConnectionResponse);
   return {
     ...response,
     data: {
-      connectionsForDisplay: getConnectionsForDisplay(response.data.items),
-      connectionsWithFromAction: getConnectionsWithFromAction(
-        response.data.items
-      ),
-      connectionsWithToAction: getConnectionsWithToAction(response.data.items),
-      dangerouslyUnfilteredConnections: response.data.items,
+      connectionsForDisplay: getConnectionsForDisplay(connections),
+      connectionsWithFromAction: getConnectionsWithFromAction(connections),
+      connectionsWithToAction: getConnectionsWithToAction(connections),
+      dangerouslyUnfilteredConnections: connections,
       totalCount: response.data.totalCount,
     },
   };

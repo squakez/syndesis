@@ -57,16 +57,20 @@ export class ConnectionSchemaContent extends React.Component<
   public render() {
     return (
       <WithVirtualizationConnectionSchema>
-        {({ data, hasData, error }) => {
+        {({ data, hasData, error, errorMessage }) => {
           // Root nodes of the response contain the connection names
           const connNames = getConnectionNames(data);
           return (
             <Translation ns={['data', 'shared']}>
               {t => (
                 <ConnectionSchemaList
-                  i18nEmptyStateInfo={t('virtualization.emptyStateInfoMessage')}
-                  i18nEmptyStateTitle={t('virtualization.emptyStateTitle')}
-                  hasListData={true}
+                  i18nEmptyStateInfo={t(
+                    'virtualization.activeConnectionsEmptyStateInfo'
+                  )}
+                  i18nEmptyStateTitle={t(
+                    'virtualization.activeConnectionsEmptyStateTitle'
+                  )}
+                  hasListData={connNames.length > 0}
                 >
                   <WithLoader
                     error={error}
@@ -80,7 +84,7 @@ export class ConnectionSchemaContent extends React.Component<
                         }}
                       />
                     }
-                    errorChildren={<ApiError />}
+                    errorChildren={<ApiError error={errorMessage!} />}
                   >
                     {() =>
                       connNames.map((cName: string, index: number) => {

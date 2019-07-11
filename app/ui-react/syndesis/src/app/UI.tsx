@@ -1,27 +1,33 @@
 import { WithApiVersion, WithUserHelpers } from '@syndesis/api';
 import {
+  AboutModal,
+  AboutModalContent,
   AppLayout,
-  AppTopMenu,
-  ButtonLink,
   INotification,
   INotificationType,
+  Loader,
   Notifications,
-  PfDropdownItem,
   PfVerticalNavItem,
+  toValidHtmlId,
 } from '@syndesis/ui';
-import { AboutModal, AboutModalContent, Loader, toTestId } from '@syndesis/ui';
 import { WithLoader, WithRouter } from '@syndesis/utils';
-import { useState } from 'react';
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import { Translation } from 'react-i18next';
 import { Route, Switch } from 'react-router-dom';
-import { Workbox } from 'workbox-window';
 import resolvers from '../modules/resolvers';
 import { ApiError, PageNotFound, WithErrorBoundary } from '../shared';
-import fuseOnlineLogo from '../shared/images/FuseOnlineLogo_White.svg';
+import favicon from '../shared/images/favicon.ico';
 import brandImg from '../shared/images/pf4-downstream-bg.svg';
+import redHatBrandLogo from '../shared/images/red-hat-brand-logo.png';
+import redHatFuseOnlineLogo from '../shared/images/red-hat-fuse-online-logo.png';
+import synAppleTouchIcon from '../shared/images/syn-apple-touch-icon.png';
 import syndesisLogoGraphic from '../shared/images/syndesis-logo-graphic.png';
 import syndesisLogo from '../shared/images/syndesis_logo_full_darkbkg.svg';
+import rhAppleTouchIcon from '../shared/images/red-hat-apple-touch-icon.png'; // tslint:disable-line
+import redHatSafariPinnedTabIcon from '../shared/images/red-hat-safari-pinned-tab.svg';
+import synFavicon from '../shared/images/syn-favicon.ico';
+import synSafariPinnedTabIcon from '../shared/images/syn-safari-pinned-tab.svg';
 import { IAppRoute, IAppRoutes, IAppRouteWithChildrens } from './App';
 import { AppContext } from './AppContext';
 import { UIContext } from './UIContext';
@@ -35,16 +41,16 @@ export interface IAppUIState {
 }
 
 export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
-  const [showNavigation, setShowNavigation] = useState(true);
+  const [showNavigation, setShowNavigation] = React.useState(true);
   const onHideNavigation = () => setShowNavigation(false);
   const onShowNavigation = () => setShowNavigation(true);
 
-  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = React.useState(false);
   const toggleAboutModal = () => {
     setShowAboutModal(!showAboutModal);
   };
 
-  const [notifications, setNotifications] = useState<INotification[]>([]);
+  const [notifications, setNotifications] = React.useState<INotification[]>([]);
   const pushNotification = (
     msg: React.ReactNode,
     type: INotificationType,
@@ -66,6 +72,7 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
     );
   };
 
+  /* disable listening to the web worker to avoid installing it
   React.useEffect(() => {
     let refreshNotificationDisplayed = false;
     // tslint:disable
@@ -88,7 +95,7 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
             <>
               <div className="pull-right toast-pf-action">
                 <ButtonLink
-                  data-testid={`${toTestId('UI', 'reload-button')}`}
+                  data-testid={'ui-reload-button'}
                   onClick={refreshApp}
                   as={'link'}
                   style={{ padding: 0, border: 0 }}
@@ -107,6 +114,26 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
       wb.register();
     }
   }, []); // eslint-disable-line
+  */
+
+  const updateHref = (id: string, assetUrl: string) => {
+    const element =
+      document.getElementById(id) || document.createElement('link');
+    element.setAttribute('href', assetUrl);
+  };
+
+  const [productBuild, setProductBuild] = React.useState(false);
+  React.useEffect(() => {
+    updateHref('favicon', !productBuild ? synFavicon : favicon);
+    updateHref(
+      'appleTouchIcon',
+      !productBuild ? synAppleTouchIcon : rhAppleTouchIcon
+    );
+    updateHref(
+      'safariPinnedTab',
+      !productBuild ? synSafariPinnedTabIcon : redHatSafariPinnedTabIcon
+    );
+  }, [productBuild]);
 
   return (
     <UIContext.Provider
@@ -122,10 +149,11 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
             <AppContext.Consumer>
               {({ user, config }) => {
                 const isProductBuild = config && config.branding.productBuild;
+                setProductBuild(isProductBuild);
                 const productName = isProductBuild ? 'Fuse Online' : 'Syndesis';
                 return (
                   <>
-                    {showAboutModal && (
+                    {
                       <AboutModal
                         trademark={''}
                         productName={productName}
@@ -133,11 +161,11 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
                         handleModalToggle={toggleAboutModal}
                         bgImg={isProductBuild ? brandImg : undefined}
                         brandImg={
-                          isProductBuild ? fuseOnlineLogo : syndesisLogoGraphic
+                          isProductBuild ? redHatBrandLogo : syndesisLogoGraphic
                         }
                       >
                         <WithApiVersion>
-                          {({ data, error, loading }) => {
+                          {({ data, error, errorMessage, loading }) => {
                             const {
                               'commit-id': commitId,
                               'build-id': buildId,
@@ -147,7 +175,9 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
                               <WithLoader
                                 error={error}
                                 loading={loading}
-                                errorChildren={<ApiError />}
+                                errorChildren={
+                                  <ApiError error={errorMessage!} />
+                                }
                                 loaderChildren={<Loader />}
                               >
                                 {() => (
@@ -156,6 +186,8 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
                                     buildId={buildId}
                                     commitId={commitId}
                                     productName={productName}
+                                    i18nBuildIdLabel={t('BuildIdLabel')}
+                                    i18nCommitIdLabel={t('CommitIdLabel')}
                                   />
                                 )}
                               </WithLoader>
@@ -163,7 +195,7 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
                           }}
                         </WithApiVersion>
                       </AboutModal>
-                    )}
+                    }
                     <Notifications
                       notifications={notifications}
                       notificationTimerDelay={8000}
@@ -172,135 +204,137 @@ export const UI: React.FunctionComponent<IAppUIProps> = ({ routes }) => {
                     <WithRouter>
                       {({ history, match }) => {
                         return (
-                          <AppLayout
-                            onShowAboutModal={toggleAboutModal}
-                            onSelectSupport={() => {
-                              history.push(resolvers.support.root());
-                            }}
-                            onSelectSampleIntegrationTutorials={() => {
-                              window.open(
-                                'https://access.redhat.com/documentation/en-us/red_hat_fuse/7.3/html-single/fuse_online_sample_integration_tutorials/',
-                                '_blank'
-                              );
-                            }}
-                            onSelectUserGuide={() => {
-                              window.open(
-                                'https://access.redhat.com/documentation/en-us/red_hat_fuse/7.3/html-single/integrating_applications_with_fuse_online',
-                                '_blank'
-                              );
-                            }}
-                            onSelectConnectorsGuide={() => {
-                              window.open(
-                                'https://access.redhat.com/documentation/en-us/red_hat_fuse/7.3/html-single/connecting_fuse_online_to_applications_and_services/',
-                                '_blank'
-                              );
-                            }}
-                            onSelectContactUs={() => {
-                              window.location.href =
-                                'mailto:fuse-online-tech-preview@redhat.com';
-                            }}
-                            appNav={
-                              <WithUserHelpers>
-                                {({ logout }) => {
-                                  return (
-                                    <AppTopMenu
-                                      username={user.username || 'developer'}
-                                    >
-                                      <PfDropdownItem onClick={logout}>
-                                        <button
-                                          type="button"
-                                          role="menuitem"
-                                          data-testid={`${toTestId(
-                                            'UI',
-                                            'logout-link'
-                                          )}`}
-                                          className="pf-c-dropdown__menu-item"
-                                        >
-                                          {t('Logout')}
-                                        </button>
-                                      </PfDropdownItem>
-                                    </AppTopMenu>
-                                  );
-                                }}
-                              </WithUserHelpers>
-                            }
-                            verticalNav={routes.map((route, index) =>
-                              !(route as IAppRouteWithChildrens).childrens ? (
-                                <PfVerticalNavItem
-                                  exact={(route as IAppRoute).exact}
-                                  label={t((route as IAppRoute).label)}
-                                  to={(route as IAppRoute).to}
-                                  key={index}
-                                  data-testid={`${toTestId(
-                                    'UI',
-                                    (route as IAppRoute).to
-                                  )}`}
-                                />
-                              ) : (
-                                <PfVerticalNavItem
-                                  label={t(route.label)}
-                                  key={index}
-                                  to={'#'}
-                                >
-                                  {(route as IAppRouteWithChildrens).childrens.map(
-                                    (subRoute, subIndex) => (
+                          <WithUserHelpers>
+                            {({ logout }) => {
+                              const doLogout = async () => {
+                                ReactDOM.unmountComponentAtNode(
+                                  document.getElementById('root') as HTMLElement
+                                );
+                                const buffer = await logout();
+                                const bytes = new Uint8Array(buffer);
+                                const decoder = new TextDecoder('utf-8');
+                                const html = decoder.decode(bytes);
+                                window.history.pushState(null, '', '/logout');
+                                window.document.open();
+                                window.document.write(html);
+                                window.document.close();
+                              };
+
+                              return (
+                                <AppLayout
+                                  onShowAboutModal={toggleAboutModal}
+                                  onSelectSupport={() => {
+                                    history.push(resolvers.support.root());
+                                  }}
+                                  onSelectSampleIntegrationTutorials={() => {
+                                    window.open(
+                                      'https://access.redhat.com/documentation/en-us/red_hat_fuse/7.3/html-single/fuse_online_sample_integration_tutorials/',
+                                      '_blank'
+                                    );
+                                  }}
+                                  onSelectUserGuide={() => {
+                                    window.open(
+                                      'https://access.redhat.com/documentation/en-us/red_hat_fuse/7.3/html-single/integrating_applications_with_fuse_online',
+                                      '_blank'
+                                    );
+                                  }}
+                                  onSelectConnectorsGuide={() => {
+                                    window.open(
+                                      'https://access.redhat.com/documentation/en-us/red_hat_fuse/7.3/html-single/connecting_fuse_online_to_applications_and_services/',
+                                      '_blank'
+                                    );
+                                  }}
+                                  onSelectContactUs={() => {
+                                    window.location.href =
+                                      'mailto:fuse-online-tech-preview@redhat.com';
+                                  }}
+                                  logoutItem={{
+                                    children: t('Logout'),
+                                    className: 'pf-c-dropdown__menu-item',
+                                    id: 'ui-logout-link',
+                                    key: 'logoutMenuItem',
+                                    onClick: doLogout,
+                                  }}
+                                  username={user.username || 'developer'}
+                                  verticalNav={routes.map((route, index) =>
+                                    !(route as IAppRouteWithChildrens)
+                                      .childrens ? (
                                       <PfVerticalNavItem
-                                        exact={subRoute.exact}
-                                        label={t(subRoute.label)}
-                                        to={subRoute.to}
-                                        key={subIndex}
-                                        data-testid={`${toTestId(
-                                          'UI',
-                                          subRoute.to
+                                        exact={(route as IAppRoute).exact}
+                                        label={t((route as IAppRoute).label)}
+                                        to={(route as IAppRoute).to}
+                                        key={index}
+                                        data-testid={`ui-${toValidHtmlId(
+                                          (route as IAppRoute).label
                                         )}`}
                                       />
+                                    ) : (
+                                      <PfVerticalNavItem
+                                        label={t(route.label)}
+                                        key={index}
+                                        to={'#'}
+                                      >
+                                        {(route as IAppRouteWithChildrens).childrens.map(
+                                          (subRoute, subIndex) => (
+                                            <PfVerticalNavItem
+                                              exact={subRoute.exact}
+                                              label={t(subRoute.label)}
+                                              to={subRoute.to}
+                                              key={subIndex}
+                                              data-testid={`ui-${toValidHtmlId(
+                                                subRoute.label
+                                              )}`}
+                                            />
+                                          )
+                                        )}
+                                      </PfVerticalNavItem>
                                     )
                                   )}
-                                </PfVerticalNavItem>
-                              )
-                            )}
-                            pictograph={
-                              <img
-                                src={
-                                  isProductBuild ? fuseOnlineLogo : syndesisLogo
-                                }
-                                alt={productName}
-                                style={{
-                                  minWidth: '164px',
-                                }}
-                              />
-                            }
-                            logoHref={'/'}
-                            showNavigation={showNavigation}
-                            onNavigationCollapse={onHideNavigation}
-                            onNavigationExpand={onShowNavigation}
-                          >
-                            <WithErrorBoundary key={match.url}>
-                              <Switch>
-                                {routes
-                                  .reduce(
-                                    (flattenedRoutes, route) => [
-                                      ...flattenedRoutes,
-                                      ...(!(route as IAppRouteWithChildrens)
-                                        .childrens
-                                        ? [route as IAppRoute]
-                                        : (route as IAppRouteWithChildrens)
-                                            .childrens),
-                                    ],
-                                    [] as IAppRoute[]
-                                  )
-                                  .map((route, index) => (
-                                    <Route
-                                      path={route.to}
-                                      exact={route.exact}
-                                      component={route.component}
-                                      key={index}
+                                  pictograph={
+                                    <img
+                                      src={
+                                        isProductBuild
+                                          ? redHatFuseOnlineLogo
+                                          : syndesisLogo
+                                      }
+                                      alt={productName}
+                                      className="pf-c-brand"
                                     />
-                                  ))}
-                                <Route component={PageNotFound} />
-                              </Switch>
-                            </WithErrorBoundary>
-                          </AppLayout>
+                                  }
+                                  logoOnClick={() => history.push('/')}
+                                  showNavigation={showNavigation}
+                                  onNavigationCollapse={onHideNavigation}
+                                  onNavigationExpand={onShowNavigation}
+                                >
+                                  <WithErrorBoundary key={match.url}>
+                                    <Switch>
+                                      {routes
+                                        .reduce(
+                                          (flattenedRoutes, route) => [
+                                            ...flattenedRoutes,
+                                            ...(!(route as IAppRouteWithChildrens)
+                                              .childrens
+                                              ? [route as IAppRoute]
+                                              : (route as IAppRouteWithChildrens)
+                                                  .childrens),
+                                          ],
+                                          [] as IAppRoute[]
+                                        )
+                                        .map((route, index) => (
+                                          <Route
+                                            path={route.to}
+                                            exact={route.exact}
+                                            component={route.component}
+                                            key={index}
+                                          />
+                                        ))}
+                                      <Route component={PageNotFound} />
+                                    </Switch>
+                                  </WithErrorBoundary>
+                                </AppLayout>
+                              );
+                            }}
+                          </WithUserHelpers>
                         );
                       }}
                     </WithRouter>

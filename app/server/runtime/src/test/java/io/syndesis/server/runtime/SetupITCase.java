@@ -22,6 +22,7 @@ import io.syndesis.common.model.ListResult;
 import io.syndesis.common.model.connection.ConfigurationProperty;
 import io.syndesis.common.model.connection.Connection;
 import io.syndesis.common.model.connection.Connector;
+import io.syndesis.server.credential.AcquisitionMethod;
 import io.syndesis.server.credential.CredentialFlowState;
 import io.syndesis.server.credential.CredentialProvider;
 import io.syndesis.server.credential.CredentialProviderLocator;
@@ -86,7 +87,7 @@ public class SetupITCase extends BaseITCase {
         final OAuthApp twitter = apps.stream().filter(x -> x.idEquals("twitter")).findFirst().get();
         assertThat(twitter.getId()).hasValue("twitter");
         assertThat(twitter.getName()).isEqualTo("Twitter");
-        assertThat(twitter.getIcon()).startsWith("data:image/svg+xml;base64");
+        assertThat(twitter.getIcon()).startsWith("assets:");
         assertThat(twitter.propertyTaggedWith(Credentials.CLIENT_ID_TAG)).isNotPresent();
         assertThat(twitter.propertyTaggedWith(Credentials.CLIENT_SECRET_TAG)).isNotPresent();
 
@@ -104,14 +105,22 @@ public class SetupITCase extends BaseITCase {
         put("/api/v1/setup/oauth-apps/twitter", twitter);
 
         given().ignoreExceptions().await().atMost(10, SECONDS).pollInterval(1, SECONDS).until(() -> {
-            return locator.providerWithId("twitter") != null;
+            final CredentialProvider twitterProvider = locator.providerWithId("twitter");
+
+            final AcquisitionMethod acquisitionMethod = twitterProvider.acquisitionMethod();
+
+            return acquisitionMethod.configured();
         });
 
         delete("/api/v1/setup/oauth-apps/twitter");
 
         given().ignoreExceptions().await().atMost(10, SECONDS).pollInterval(1, SECONDS).until(() -> {
             try {
-                return locator.providerWithId("twitter") == null;
+                final CredentialProvider twitterProvider = locator.providerWithId("twitter");
+
+                final AcquisitionMethod acquisitionMethod = twitterProvider.acquisitionMethod();
+
+                return !acquisitionMethod.configured();
             } catch (final IllegalArgumentException e) {
                 return e.getMessage().startsWith("No property tagged with `oauth-client-id` on connector");
             }
@@ -140,7 +149,7 @@ public class SetupITCase extends BaseITCase {
         final OAuthApp updated = apps.stream().filter(x -> x.idEquals("twitter")).findFirst().get();
         assertThat(updated.getId()).hasValue("twitter");
         assertThat(updated.getName()).isEqualTo("Twitter");
-        assertThat(updated.getIcon()).startsWith("data:image/svg+xml;base64");
+        assertThat(updated.getIcon()).startsWith("assets:");
         assertThat(updated.propertyTaggedWith(Credentials.CLIENT_ID_TAG)).hasValue("test-id");
         assertThat(updated.propertyTaggedWith(Credentials.CLIENT_SECRET_TAG)).hasValue("test-secret");
 

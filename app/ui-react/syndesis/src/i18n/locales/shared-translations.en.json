@@ -12,6 +12,7 @@
     },
     "shared": {
       "Actions": "Actions",
+      "Back": "Back",
       "Cancel": "Cancel",
       "CiCd": "CI/CD",
       "Configure": "Configure",
@@ -42,6 +43,7 @@
       "linkCreateIntegration": "Create Integration",
       "Name": "Name",
       "nameFilterPlaceholder": "Filter by Name...",
+      "Next": "Next",
       "Pending": "Pending",
       "Publish": "Publish",
       "Published": "Running",
@@ -80,7 +82,7 @@
       },
       "project": {
         "name": "Syndesis",
-        "version": "7.1"
+        "version": "7.4"
       },
       "error": {
         "title": "Something is wrong",

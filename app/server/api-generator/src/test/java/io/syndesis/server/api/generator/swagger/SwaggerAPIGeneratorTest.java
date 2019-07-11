@@ -25,42 +25,16 @@ import io.syndesis.common.model.api.APISummary;
 import io.syndesis.common.model.connection.Connection;
 import io.syndesis.common.model.connection.Connector;
 import io.syndesis.common.model.integration.Flow;
+import io.syndesis.common.model.openapi.OpenApi;
 import io.syndesis.server.api.generator.APIIntegration;
 import io.syndesis.server.api.generator.APIValidationContext;
 import io.syndesis.server.api.generator.ProvidedApiTemplate;
+
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SwaggerAPIGeneratorTest {
-
-    @Test
-    public void testEmptyOperationSummary() throws IOException {
-        ProvidedApiTemplate template = new ProvidedApiTemplate(dummyConnection(), "fromAction", "toAction");
-        String specification = TestHelper.resource("/swagger/empty-summary.json");
-        SwaggerAPIGenerator generator = new SwaggerAPIGenerator();
-
-        APIIntegration apiIntegration = generator.generateIntegration(specification, template);
-        assertThat(apiIntegration).isNotNull();
-        assertThat(apiIntegration.getIntegration().getFlows()).hasSize(3);
-
-        List<Flow> flows = apiIntegration.getIntegration().getFlows();
-
-        assertThat(flows).filteredOn(idEndsWith("-1")).first().hasFieldOrPropertyWithValue("name", "Receiving GET request on /hi");
-        assertThat(flows).filteredOn(idEndsWith("-2")).first().hasFieldOrPropertyWithValue("name", "post operation");
-        assertThat(flows).filteredOn(idEndsWith("-3")).first().hasFieldOrPropertyWithValue("name", "Receiving PUT request on /hi");
-    }
-
-    @Test
-    public void infoShouldHandleNullSpecifications() {
-        final SwaggerAPIGenerator generator = new SwaggerAPIGenerator();
-
-        final APISummary summary = generator.info(null, APIValidationContext.NONE);
-
-        assertThat(summary).isNotNull();
-        assertThat(summary.getErrors()).hasSize(1).allSatisfy(v -> assertThat(v.message()).startsWith("Unable to resolve OpenAPI document from"));
-        assertThat(summary.getWarnings()).isEmpty();
-    }
 
     @Test
     public void infoShouldHandleNullModels() {
@@ -69,7 +43,8 @@ public class SwaggerAPIGeneratorTest {
         final APISummary summary = generator.info("invalid", APIValidationContext.NONE);
 
         assertThat(summary).isNotNull();
-        assertThat(summary.getErrors()).hasSize(1).allSatisfy(v -> assertThat(v.message()).startsWith("Unable to read OpenAPI document from"));
+        assertThat(summary.getErrors()).hasSize(1)
+            .allSatisfy(v -> assertThat(v.message()).startsWith("This document cannot be uploaded. Provide an OpenAPI 2.0 document"));
         assertThat(summary.getWarnings()).isEmpty();
     }
 
@@ -84,12 +59,36 @@ public class SwaggerAPIGeneratorTest {
         assertThat(summary.getWarnings()).isEmpty();
     }
 
-    private static Predicate<Flow> idEndsWith(String end) {
-        return f -> f.getId().map(id -> id.endsWith(end)).orElse(false);
+    @Test
+    public void infoShouldHandleNullSpecifications() {
+        final SwaggerAPIGenerator generator = new SwaggerAPIGenerator();
+
+        final APISummary summary = generator.info(null, APIValidationContext.NONE);
+
+        assertThat(summary).isNotNull();
+        assertThat(summary.getErrors()).hasSize(1).allSatisfy(v -> assertThat(v.message()).startsWith("Unable to resolve OpenAPI document from"));
+        assertThat(summary.getWarnings()).isEmpty();
+    }
+
+    @Test
+    public void testEmptyOperationSummary() throws IOException {
+        final ProvidedApiTemplate template = new ProvidedApiTemplate(dummyConnection(), "fromAction", "toAction");
+        final String specification = TestHelper.resource("/swagger/empty-summary.json");
+        final SwaggerAPIGenerator generator = new SwaggerAPIGenerator();
+
+        final APIIntegration apiIntegration = generator.generateIntegration(specification, template);
+        assertThat(apiIntegration).isNotNull();
+        assertThat(apiIntegration.getIntegration().getFlows()).hasSize(3);
+
+        final List<Flow> flows = apiIntegration.getIntegration().getFlows();
+
+        assertThat(flows).filteredOn(operationIdEquals("operation-1")).first().hasFieldOrPropertyWithValue("name", "Receiving GET request on /hi");
+        assertThat(flows).filteredOn(operationIdEquals("operation-2")).first().hasFieldOrPropertyWithValue("name", "post operation");
+        assertThat(flows).filteredOn(operationIdEquals("operation-3")).first().hasFieldOrPropertyWithValue("name", "Receiving PUT request on /hi");
     }
 
     private static Connection dummyConnection() {
-        Connector connector = new Connector.Builder()
+        final Connector connector = new Connector.Builder()
             .addAction(
                 new ConnectorAction.Builder().id("fromAction")
                     .descriptor(new ConnectorDescriptor.Builder().build())
@@ -102,4 +101,8 @@ public class SwaggerAPIGeneratorTest {
 
         return new Connection.Builder().connector(connector).build();
     }
- }
+
+    private static Predicate<Flow> operationIdEquals(final String operationId) {
+        return f -> f.getMetadata(OpenApi.OPERATION_ID).map(id -> id.equals(operationId)).orElse(false);
+    }
+}

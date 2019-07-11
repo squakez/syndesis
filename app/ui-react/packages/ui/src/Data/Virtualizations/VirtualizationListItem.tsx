@@ -2,31 +2,34 @@ import * as H from '@syndesis/history';
 import {
   //  Button,
   DropdownKebab,
+  Icon,
   ListView,
   ListViewIcon,
+  ListViewInfoItem,
   ListViewItem,
   MenuItem,
   OverlayTrigger,
   Tooltip,
 } from 'patternfly-react';
 import * as React from 'react';
+import { toValidHtmlId } from '../../helpers';
 import { ButtonLink } from '../../Layout';
 import {
   ConfirmationButtonStyle,
   ConfirmationDialog,
   ConfirmationIconType,
+  ProgressWithLink,
 } from '../../Shared';
-import { toTestId } from '../../utils';
 import {
   BUILDING,
   CONFIGURING,
   DEPLOYING,
   RUNNING,
-  SUBMITTED,
   VirtualizationPublishState,
 } from './models';
 import { VirtualizationPublishStatus } from './VirtualizationPublishStatus';
-import { VirtualizationPublishStatusDetail } from './VirtualizationPublishStatusDetail';
+
+import './VirtualizationListItem.css';
 
 export interface IVirtualizationListItemProps {
   currentPublishedState: VirtualizationPublishState;
@@ -46,13 +49,15 @@ export interface IVirtualizationListItemProps {
   i18nPublishLogUrlText: string;
   i18nPublishInProgress: string;
   i18nUnpublish: string;
+  i18nUnpublishInProgress: string;
   i18nUnpublishModalMessage: string;
   i18nUnpublishModalTitle: string;
   icon?: string;
+  odataUrl?: string;
   onDelete: (virtualizationName: string) => void;
   /* TD-636: Commented out for TP 
   onExport: (virtualizationName: string) => void; */
-  onPublish: (virtualizationName: string) => void;
+  onPublish: (virtualizationName: string, hasViews: boolean) => void;
   onUnpublish: (virtualizationName: string) => void;
   publishingCurrentStep?: number;
   publishingLogUrl?: string;
@@ -60,225 +65,219 @@ export interface IVirtualizationListItemProps {
   publishingStepText?: string;
   serviceVdbName: string;
   virtualizationName: string;
+  virtualizationViewNames: string[];
   virtualizationDescription: string;
 }
 
-export interface IVirtualizationListItemState {
-  showConfirmationDialog: boolean;
-}
+export const VirtualizationListItem: React.FunctionComponent<
+  IVirtualizationListItemProps
+> = props => {
+  const [showConfirmationDialog, setShowConfirmationDialog] = React.useState(false);
 
-export class VirtualizationListItem extends React.Component<
-  IVirtualizationListItemProps,
-  IVirtualizationListItemState
-> {
-  public constructor(props: IVirtualizationListItemProps) {
-    super(props);
-    this.state = {
-      showConfirmationDialog: false, // initial visibility of confirmation dialog
-    };
-    this.handleCancel = this.handleCancel.bind(this);
-    this.handleDelete = this.handleDelete.bind(this);
-    /* TD-636: Commented out for TP
-    this.handleExport = this.handleExport.bind(this); */
-    this.handleUnpublish = this.handleUnpublish.bind(this);
-    this.handlePublish = this.handlePublish.bind(this);
-    this.showConfirmationDialog = this.showConfirmationDialog.bind(this);
-  }
+  const doCancel = () => {
+    setShowConfirmationDialog(false);
+  };
 
-  public getEditTooltip() {
+  const getEditTooltip = (): JSX.Element => {
     return (
       <Tooltip id="detailsTip">
-        {this.props.i18nEditTip ? this.props.i18nEditTip : this.props.i18nEdit}
+        {props.i18nEditTip ? props.i18nEditTip : props.i18nEdit}
       </Tooltip>
     );
   }
 
-  public handleCancel() {
-    this.setState({
-      showConfirmationDialog: false, // hide dialog
-    });
-  }
-
-  public handleDelete() {
-    this.setState({
-      showConfirmationDialog: false, // hide dialog
-    });
+  const doDelete = () => {
+    setShowConfirmationDialog(false);
 
     // TODO: disable components while delete is processing
-    if (this.props.virtualizationName) {
-      this.props.onDelete(this.props.virtualizationName);
+    props.onDelete(props.virtualizationName);
+  };
+
+  const doPublish = () => {
+    if (props.virtualizationName) {
+      props.onPublish(
+        props.virtualizationName,
+        props.virtualizationViewNames.length > 0
+      );
     }
   }
 
-  /* TD-636: Commented out for TP
-  public handleExport() {
-    if (this.props.virtualizationName) {
-      this.props.onExport(this.props.virtualizationName);
-    }
-  } */
+  const doUnpublish = () => {
+    setShowConfirmationDialog(false);
 
-  public handlePublish() {
-    if (this.props.virtualizationName) {
-      this.props.onPublish(this.props.virtualizationName);
+    if (props.serviceVdbName) {
+      props.onUnpublish(props.serviceVdbName);
     }
   }
 
-  public handleUnpublish() {
-    this.setState({
-      showConfirmationDialog: false, // hide dialog
-    });
-
-    if (this.props.serviceVdbName) {
-      this.props.onUnpublish(this.props.serviceVdbName);
-    }
+  const showConfirmDialog = () => {
+    setShowConfirmationDialog(true);
   }
 
-  public showConfirmationDialog() {
-    this.setState({
-      showConfirmationDialog: true,
-    });
-  }
+  // Determine published state
+  const isPublished =
+    props.currentPublishedState === RUNNING ? true : false;
 
-  public handleAcceptConfirmation() {
-    const isPublished =
-      this.props.currentPublishedState === RUNNING ? true : false;
-    if (isPublished) {
-      this.handleUnpublish();
-    } else {
-      this.handleDelete();
-    }
-  }
+  const publishInProgress =
+    props.currentPublishedState === BUILDING ||
+      props.currentPublishedState === CONFIGURING ||
+      props.currentPublishedState === DEPLOYING
+      ? true
+      : false;
 
-  public render() {
-    // Determine published state
-    const isPublished =
-      this.props.currentPublishedState === RUNNING ? true : false;
-    const publishInProgress =
-      this.props.currentPublishedState === BUILDING ||
-      this.props.currentPublishedState === CONFIGURING ||
-      this.props.currentPublishedState === DEPLOYING ||
-      this.props.currentPublishedState === SUBMITTED
-        ? true
-        : false;
-
-    return (
-      <>
-        <ConfirmationDialog
-          buttonStyle={
-            isPublished
-              ? ConfirmationButtonStyle.WARNING
-              : ConfirmationButtonStyle.DANGER
-          }
-          i18nCancelButtonText={this.props.i18nCancelText}
-          i18nConfirmButtonText={
-            isPublished ? this.props.i18nUnpublish : this.props.i18nDelete
-          }
-          i18nConfirmationMessage={
-            isPublished
-              ? this.props.i18nUnpublishModalMessage
-              : this.props.i18nDeleteModalMessage
-          }
-          i18nTitle={
-            isPublished
-              ? this.props.i18nUnpublishModalTitle
-              : this.props.i18nDeleteModalTitle
-          }
-          icon={
-            isPublished
-              ? ConfirmationIconType.WARNING
-              : ConfirmationIconType.DANGER
-          }
-          showDialog={this.state.showConfirmationDialog}
-          onCancel={this.handleCancel}
-          onConfirm={this.handleDelete}
-        />
-        <ListViewItem
-          actions={
-            <div className="form-group">
-              {publishInProgress ? (
-                <VirtualizationPublishStatusDetail
-                  logUrl={this.props.publishingLogUrl}
-                  stepText={this.props.publishingStepText}
-                  currentStep={this.props.publishingCurrentStep}
-                  totalSteps={this.props.publishingTotalSteps}
-                  i18nPublishInProgress={this.props.i18nPublishInProgress}
-                  i18nLogUrlText={this.props.i18nPublishLogUrlText}
-                />
-              ) : (
-                <VirtualizationPublishStatus
-                  currentState={this.props.currentPublishedState}
-                  i18nPublished={this.props.i18nPublished}
-                  i18nUnpublished={this.props.i18nDraft}
-                  i18nError={this.props.i18nError}
-                />
-              )}
-              <OverlayTrigger overlay={this.getEditTooltip()} placement="top">
-                <ButtonLink
-                  data-testid={`${toTestId(
-                    'VirtualizationListItem',
-                    this.props.virtualizationName,
-                    'edit-button'
-                  )}`}
-                  href={this.props.detailsPageLink}
-                  as={'primary'}
-                >
-                  {this.props.i18nEdit}
-                </ButtonLink>
-              </OverlayTrigger>
-              <DropdownKebab
-                id={`virtualization-${
-                  this.props.virtualizationName
-                }-action-menu`}
-                pullRight={true}
+  return (
+    <>
+      <ConfirmationDialog
+        buttonStyle={
+          isPublished
+            ? ConfirmationButtonStyle.WARNING
+            : ConfirmationButtonStyle.DANGER
+        }
+        i18nCancelButtonText={props.i18nCancelText}
+        i18nConfirmButtonText={
+          isPublished ? props.i18nUnpublish : props.i18nDelete
+        }
+        i18nConfirmationMessage={
+          isPublished
+            ? props.i18nUnpublishModalMessage
+            : props.i18nDeleteModalMessage
+        }
+        i18nTitle={
+          isPublished
+            ? props.i18nUnpublishModalTitle
+            : props.i18nDeleteModalTitle
+        }
+        icon={
+          isPublished
+            ? ConfirmationIconType.WARNING
+            : ConfirmationIconType.DANGER
+        }
+        showDialog={showConfirmationDialog}
+        onCancel={doCancel}
+        onConfirm={isPublished ? doUnpublish : doDelete}
+      />
+      <ListViewItem
+        data-testid={`virtualization-list-item-${toValidHtmlId(
+          props.virtualizationName
+        )}-list-item`}
+        actions={
+          <div className="form-group">
+            {publishInProgress ? (
+              <div
+                data-testid={'virtualization-list-item-progress'}
+                className={'virtualization-list-item-progress'}
               >
-                <MenuItem onClick={this.showConfirmationDialog}>
-                  {this.props.i18nDelete}
-                </MenuItem>
-                {/* TD-636: Commented out for TP 
-                <MenuItem onClick={this.handleExport}>
-                  {this.props.i18nExport}
-                </MenuItem> */}
-                <MenuItem
-                  onClick={
-                    isPublished || publishInProgress
-                      ? this.handleUnpublish
-                      : this.handlePublish
+                <ProgressWithLink
+                  logUrl={props.publishingLogUrl}
+                  value={
+                    props.publishingStepText
+                      ? props.publishingStepText
+                      : ''
                   }
-                >
-                  {isPublished || publishInProgress
-                    ? this.props.i18nUnpublish
-                    : this.props.i18nPublish}
-                </MenuItem>
-              </DropdownKebab>
-            </div>
-          }
-          heading={this.props.virtualizationName}
-          description={
-            this.props.virtualizationDescription
-              ? this.props.virtualizationDescription
-              : ''
-          }
-          hideCloseIcon={true}
-          leftContent={
-            this.props.icon ? (
-              <div className="blank-slate-pf-icon">
-                <img
-                  src={this.props.icon}
-                  alt={this.props.virtualizationName}
-                  width={46}
+                  currentStep={
+                    props.publishingCurrentStep
+                      ? props.publishingCurrentStep
+                      : 0
+                  }
+                  totalSteps={
+                    props.publishingTotalSteps
+                      ? props.publishingTotalSteps
+                      : 4
+                  }
+                  i18nLogUrlText={props.i18nPublishLogUrlText}
                 />
               </div>
             ) : (
-              <ListViewIcon name={'database'} />
+                <VirtualizationPublishStatus
+                  currentState={props.currentPublishedState}
+                  i18nPublished={props.i18nPublished}
+                  i18nUnpublished={props.i18nDraft}
+                  i18nPublishInProgress={props.i18nPublishInProgress}
+                  i18nUnpublishInProgress={props.i18nUnpublishInProgress}
+                  i18nError={props.i18nError}
+                />
+              )}
+            <OverlayTrigger overlay={getEditTooltip()} placement="top">
+              <ButtonLink
+                data-testid={'virtualization-list-item-edit-button'}
+                href={props.detailsPageLink}
+                as={'primary'}
+              >
+                {props.i18nEdit}
+              </ButtonLink>
+            </OverlayTrigger>
+            <DropdownKebab
+              id={`virtualization-${
+                props.virtualizationName
+                }-action-menu`}
+              pullRight={true}
+            >
+              <MenuItem onClick={showConfirmDialog}>
+                {props.i18nDelete}
+              </MenuItem>
+              {/* TD-636: Commented out for TP 
+                <MenuItem onClick={handleExport}>
+                  {props.i18nExport}
+                </MenuItem> */}
+              <MenuItem
+                onClick={
+                  isPublished || publishInProgress
+                    ? doUnpublish
+                    : doPublish
+                }
+              >
+                {isPublished || publishInProgress
+                  ? props.i18nUnpublish
+                  : props.i18nPublish}
+              </MenuItem>
+            </DropdownKebab>
+          </div>
+        }
+        heading={props.virtualizationName}
+        description={
+          props.virtualizationDescription
+            ? props.virtualizationDescription
+            : ''
+        }
+        additionalInfo={[
+          <ListViewInfoItem key={1}>
+            {props.odataUrl && (
+              <span>
+                <a
+                  data-testid={'virtualization-list-item-odataUrl'}
+                  target="_blank"
+                  href={props.odataUrl}
+                >
+                  {props.odataUrl}
+                  <Icon
+                    className={'virtualization-list-item-odata-link-icon'}
+                    name={'external-link'}
+                  />
+                </a>
+              </span>
+            )}
+          </ListViewInfoItem>,
+        ]}
+        hideCloseIcon={true}
+        leftContent={
+          props.icon ? (
+            <div className="blank-slate-pf-icon">
+              <img
+                src={props.icon}
+                alt={props.virtualizationName}
+                width={46}
+              />
+            </div>
+          ) : (
+              <ListViewIcon name={'cube'} />
             )
-          }
-          stacked={true}
-        >
-          {this.props.children ? (
-            <ListView>{this.props.children}</ListView>
-          ) : null}
-        </ListViewItem>
-      </>
-    );
-  }
+        }
+        stacked={true}
+      >
+        {props.children ? (
+          <ListView>{props.children}</ListView>
+        ) : null}
+      </ListViewItem>
+    </>
+  );
 }

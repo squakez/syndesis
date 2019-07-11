@@ -1,4 +1,3 @@
-import { Text } from '@patternfly/react-core';
 import { Alert, Card } from 'patternfly-react';
 import * as React from 'react';
 import { DndFileChooser } from '../../Shared/DndFileChooser';
@@ -51,16 +50,6 @@ export interface IExtensionImportCardProps {
   i18nDndUploadSuccessMessage?: string;
 
   /**
-   * The localized instructions text that appears above the DnD component.
-   */
-  i18nImportInstructions: string;
-
-  /**
-   * The localized title text that appears above the DnD component.
-   */
-  i18nTitle: string;
-
-  /**
    * Callback for when one or more file uploads have been accepted. Caller should handler processing of the files.
    */
   onDndUploadAccepted(files: File[]): void;
@@ -71,36 +60,30 @@ export interface IExtensionImportCardProps {
   onDndUploadRejected(fileName: string): string;
 }
 
-export class ExtensionImportCard extends React.Component<
+export const ExtensionImportCard: React.FunctionComponent<
   IExtensionImportCardProps
-> {
-  public render() {
-    return (
-      <Card>
-        <Card.Heading>
-          <Card.Title>{this.props.i18nTitle}</Card.Title>
-        </Card.Heading>
-        <Card.Body>
-          <Text>{this.props.i18nImportInstructions}</Text>
-          {this.props.i18nAlertMessage ? (
-            <Alert type={'error'}>
-              <span>{this.props.i18nAlertMessage}</span>
-            </Alert>
-          ) : null}
-          <DndFileChooser
-            disableDropzone={this.props.dndDisabled}
-            fileExtensions={'.jar'}
-            i18nHelpMessage={this.props.i18nDndHelpMessage}
-            i18nInstructions={this.props.i18nDndInstructions}
-            i18nNoFileSelectedMessage={this.props.i18nDndNoFileSelectedMessage}
-            i18nSelectedFileLabel={this.props.i18nDndSelectedFileLabel}
-            i18nUploadFailedMessage={this.props.i18nDndUploadFailedMessage}
-            i18nUploadSuccessMessage={this.props.i18nDndUploadSuccessMessage}
-            onUploadAccepted={this.props.onDndUploadAccepted}
-            onUploadRejected={this.props.onDndUploadRejected}
-          />
-        </Card.Body>
-      </Card>
-    );
-  }
-}
+> = props => {
+  return (
+    <Card>
+      <Card.Body>
+        {props.i18nAlertMessage ? (
+          <Alert type={'error'}>
+            <span>{props.i18nAlertMessage}</span>
+          </Alert>
+        ) : null}
+        <DndFileChooser
+          disableDropzone={props.dndDisabled}
+          fileExtensions={'.jar'}
+          i18nHelpMessage={props.i18nDndHelpMessage}
+          i18nInstructions={props.i18nDndInstructions}
+          i18nNoFileSelectedMessage={props.i18nDndNoFileSelectedMessage}
+          i18nSelectedFileLabel={props.i18nDndSelectedFileLabel}
+          i18nUploadFailedMessage={props.i18nDndUploadFailedMessage}
+          i18nUploadSuccessMessage={props.i18nDndUploadSuccessMessage}
+          onUploadAccepted={props.onDndUploadAccepted}
+          onUploadRejected={props.onDndUploadRejected}
+        />
+      </Card.Body>
+    </Card>
+  );
+};

@@ -1,15 +1,13 @@
 import * as React from 'react';
 import { Route, Switch } from 'react-router';
-import { EditSpecificationPage } from './apiProvider/EditSpecificationPage';
-import { ReviewActionsPage } from './apiProvider/ReviewActionsPage';
-import { ReviewOperationsPage } from './apiProvider/ReviewOperationsPage';
+import { IEditSpecificationPageProps } from './apiProvider/EditSpecificationPage';
+import { IReviewActionsPageProps } from './apiProvider/ReviewActionsPage';
 import { SelectMethodPage } from './apiProvider/SelectMethodPage';
-import { SetInfoPage } from './apiProvider/SetInfoPage';
 import { IDataMapperPageProps } from './dataMapper/DataMapperPage';
 import { ConfigureActionPage } from './endpoint/ConfigureActionPage';
 import { DescribeDataShapePage } from './endpoint/DescribeDataShapePage';
 import { SelectActionPage } from './endpoint/SelectActionPage';
-import { TemplateStepPage } from './template/TemplateStepPage';
+import { ITemplateStepPageProps } from './template/TemplateStepPage';
 
 export interface IEndpointEditorAppProps {
   selectActionPath: string;
@@ -47,13 +45,9 @@ export interface IApiProviderAppProps {
   selectMethodPath: string;
   selectMethodChildren: React.ReactElement<SelectMethodPage>;
   reviewActionsPath: string;
-  reviewActionsChildren: React.ReactElement<ReviewActionsPage>;
+  reviewActionsChildren: React.ReactElement<IReviewActionsPageProps>;
   editSpecificationPath: string;
-  editSpecificationChildren: React.ReactElement<EditSpecificationPage>;
-  setInfoPath: string;
-  setInfoChildren: React.ReactElement<SetInfoPage>;
-  reviewOperationsPath: string;
-  reviewOperationsChildren: React.ReactElement<ReviewOperationsPage>;
+  editSpecificationChildren: React.ReactElement<IEditSpecificationPageProps>;
 }
 export const ApiProviderApp: React.FunctionComponent<
   IApiProviderAppProps
@@ -75,23 +69,13 @@ export const ApiProviderApp: React.FunctionComponent<
         exact={true}
         children={props.editSpecificationChildren}
       />
-      <Route
-        path={props.setInfoPath}
-        exact={true}
-        children={props.setInfoChildren}
-      />
-      <Route
-        path={props.reviewOperationsPath}
-        exact={true}
-        children={props.reviewOperationsChildren}
-      />
     </Switch>
   );
 };
 
 export interface ITemplateAppProps {
   templatePath: string;
-  templateChildren: React.ReactElement<TemplateStepPage>;
+  templateChildren: React.ReactElement<ITemplateStepPageProps>;
 }
 export const TemplateApp: React.FunctionComponent<
   ITemplateAppProps
@@ -120,6 +104,22 @@ export const BasicFilterApp: React.FunctionComponent<
         path={props.basicFilterPath}
         exact={true}
         children={props.basicFilterChildren}
+      />
+    </Switch>
+  );
+};
+
+export interface IChoiceAppProps {
+  choicePath: string;
+  choiceChildren: React.ReactElement<IChoiceAppProps>;
+}
+export const ChoiceApp: React.FunctionComponent<IChoiceAppProps> = props => {
+  return (
+    <Switch>
+      <Route
+        path={props.choicePath}
+        exact={true}
+        children={props.choiceChildren}
       />
     </Switch>
   );
@@ -185,6 +185,7 @@ export interface IEditorAppProps {
   template: ITemplateAppProps;
   dataMapper: IDataMapperAppProps;
   basicFilter: IBasicFilterAppProps;
+  choice: IChoiceAppProps;
   step: IStepAppProps;
   extension: IExtensionAppProps;
 }
@@ -199,16 +200,6 @@ export const EditorRoutes: React.FunctionComponent<IEditorAppProps> = props => {
         />
       ) : null}
 
-      <Route path={props.endpointEditor.selectActionPath}>
-        <EndpointEditorApp
-          selectActionPath={props.endpointEditor.selectActionPath}
-          selectActionChildren={props.endpointEditor.selectActionChildren}
-          configureActionPath={props.endpointEditor.configureActionPath}
-          configureActionChildren={props.endpointEditor.configureActionChildren}
-          describeDataPath={props.endpointEditor.describeDataPath}
-          describeDataChildren={props.endpointEditor.describeDataChildren}
-        />
-      </Route>
       <Route path={props.apiProvider.selectMethodPath}>
         <ApiProviderApp
           selectMethodPath={props.apiProvider.selectMethodPath}
@@ -219,10 +210,17 @@ export const EditorRoutes: React.FunctionComponent<IEditorAppProps> = props => {
           editSpecificationChildren={
             props.apiProvider.editSpecificationChildren
           }
-          setInfoPath={props.apiProvider.setInfoPath}
-          setInfoChildren={props.apiProvider.setInfoChildren}
-          reviewOperationsPath={props.apiProvider.reviewOperationsPath}
-          reviewOperationsChildren={props.apiProvider.reviewOperationsChildren}
+        />
+      </Route>
+
+      <Route path={props.endpointEditor.selectActionPath}>
+        <EndpointEditorApp
+          selectActionPath={props.endpointEditor.selectActionPath}
+          selectActionChildren={props.endpointEditor.selectActionChildren}
+          configureActionPath={props.endpointEditor.configureActionPath}
+          configureActionChildren={props.endpointEditor.configureActionChildren}
+          describeDataPath={props.endpointEditor.describeDataPath}
+          describeDataChildren={props.endpointEditor.describeDataChildren}
         />
       </Route>
       <Route path={props.template.templatePath}>
@@ -241,6 +239,12 @@ export const EditorRoutes: React.FunctionComponent<IEditorAppProps> = props => {
         <BasicFilterApp
           basicFilterPath={props.basicFilter.basicFilterPath}
           basicFilterChildren={props.basicFilter.basicFilterChildren}
+        />
+      </Route>
+      <Route path={props.choice.choicePath}>
+        <ChoiceApp
+          choicePath={props.choice.choicePath}
+          choiceChildren={props.choice.choiceChildren}
         />
       </Route>
       <Route path={props.step.configurePath}>

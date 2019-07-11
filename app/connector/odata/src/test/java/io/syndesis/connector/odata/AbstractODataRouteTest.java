@@ -15,6 +15,16 @@
  */
 package io.syndesis.connector.odata;
 
+import java.io.IOException;
+import org.apache.http.HttpHost;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.protocol.HttpContext;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.junit.After;
 import org.junit.Before;
@@ -26,6 +36,21 @@ import io.syndesis.common.model.integration.Step;
 import io.syndesis.common.model.integration.StepKind;
 
 public abstract class AbstractODataRouteTest extends AbstractODataTest {
+
+    protected static final String TEST_SERVER_DATA_1 = "test-server-data-1.json";
+    protected static final String TEST_SERVER_DATA_2 = "test-server-data-2.json";
+    protected static final String TEST_SERVER_DATA_3 = "test-server-data-3.json";
+    protected static final String TEST_SERVER_DATA_1_WITH_COUNT = "test-server-data-1-with-count.json";
+    protected static final String TEST_SERVER_DATA_2_WITH_COUNT = "test-server-data-2-with-count.json";
+    protected static final String TEST_SERVER_DATA_3_WITH_COUNT = "test-server-data-3-with-count.json";
+    protected static final String REF_SERVER_PEOPLE_DATA_1 = "ref-server-people-data-1.json";
+    protected static final String REF_SERVER_PEOPLE_DATA_1_EXPANDED_TRIPS = "ref-server-people-data-1-expanded-trips.json";
+    protected static final String REF_SERVER_PEOPLE_DATA_2 = "ref-server-people-data-2.json";
+    protected static final String REF_SERVER_PEOPLE_DATA_3 = "ref-server-people-data-3.json";
+    protected static final String REF_SERVER_AIRPORT_DATA_KLAX = "ref-server-airport-data-klax.json";
+    protected static final String REF_SERVER_PEOPLE_DATA_KLAX_LOC = "ref-server-airport-data-klax-location.json";
+    protected static final String REF_SERVER_AIRPORT_DATA_1 = "ref-server-airport-data-1.json";
+    protected static final String TEST_SERVER_DATA_EMPTY = "test-server-data-empty.json";
 
     protected final Step mockStep;
 
@@ -89,4 +114,25 @@ public abstract class AbstractODataRouteTest extends AbstractODataTest {
         CLOSE_BRACE;
     }
 
+    /*
+     * Taken with appreciation from camel-olingo4 code found at
+     * https://github.com/apache/camel/blob/master/components/camel-olingo4/camel-olingo4-component/src/test/java/org/apache/camel/component/olingo4/AbstractOlingo4TestSupport.java#L77
+     *
+     * Every request to the demo OData 4.0
+     * (http://services.odata.org/TripPinRESTierService) generates unique
+     * service URL with postfix like (S(tuivu3up5ygvjzo5fszvnwfv)) for each
+     * session This method makes request to the base URL and return URL with
+     * generated postfix
+     */
+    @SuppressWarnings("deprecation")
+    protected String getRealRefServiceUrl(String baseUrl) throws ClientProtocolException, IOException {
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+        HttpGet httpGet = new HttpGet(baseUrl);
+        HttpContext httpContext = new BasicHttpContext();
+        httpclient.execute(httpGet, httpContext);
+        HttpUriRequest currentReq = (HttpUriRequest)httpContext.getAttribute(ExecutionContext.HTTP_REQUEST);
+        HttpHost currentHost = (HttpHost)httpContext.getAttribute(ExecutionContext.HTTP_TARGET_HOST);
+
+        return currentReq.getURI().isAbsolute() ? currentReq.getURI().toString() : (currentHost.toURI() + currentReq.getURI());
+    }
 }

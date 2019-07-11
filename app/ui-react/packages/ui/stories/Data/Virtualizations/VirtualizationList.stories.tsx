@@ -45,7 +45,8 @@ const confirmDeleteMessage =
 const confirmUnpublishTitle = 'Unpublish Virtualization';
 const confirmUnpublishMessage =
   'This Virtualization has been published.  Please unpublish the Virtualization first.';
-const publishInProgressText = 'Publish In Progress';
+const publishInProgressText = 'publish in progress...';
+const unpublishInProgressText = 'unpublish in progress...';
 const publishLogUrlText = 'View Logs';
 const currentStatusPublished = 'RUNNING';
 const currentStatusDraft = 'NOTFOUND';
@@ -87,6 +88,7 @@ const virtItem = [
     key="virtualizationListItem1"
     virtualizationName={virtualizationName1}
     virtualizationDescription={virtualizationDescription1}
+    virtualizationViewNames={[]}
     serviceVdbName={serviceVdbName1}
     detailsPageLink={''}
     i18nCancelText={cancelText}
@@ -104,6 +106,7 @@ const virtItem = [
     i18nPublish={publishText}
     i18nPublishInProgress={publishInProgressText}
     i18nPublishLogUrlText={publishLogUrlText}
+    i18nUnpublishInProgress={unpublishInProgressText}
     i18nUnpublishModalMessage={confirmUnpublishMessage}
     i18nUnpublishModalTitle={confirmUnpublishTitle}
     onDelete={action(deleteText)}
@@ -122,6 +125,7 @@ const virtualizationItems = [
     key="virtualizationListItem1"
     virtualizationName={virtualizationName1}
     virtualizationDescription={virtualizationDescription1}
+    virtualizationViewNames={[]}
     serviceVdbName={serviceVdbName1}
     detailsPageLink={''}
     i18nCancelText={cancelText}
@@ -139,6 +143,7 @@ const virtualizationItems = [
     i18nPublish={publishText}
     i18nPublishInProgress={publishInProgressText}
     i18nPublishLogUrlText={publishLogUrlText}
+    i18nUnpublishInProgress={unpublishInProgressText}
     i18nUnpublishModalMessage={confirmUnpublishMessage}
     i18nUnpublishModalTitle={confirmUnpublishTitle}
     onDelete={action(deleteText)}
@@ -153,6 +158,7 @@ const virtualizationItems = [
     key="virtualizationListItem2"
     virtualizationName={virtualizationName2}
     virtualizationDescription={virtualizationDescription2}
+    virtualizationViewNames={[]}
     serviceVdbName={serviceVdbName2}
     detailsPageLink={''}
     i18nCancelText={cancelText}
@@ -170,6 +176,7 @@ const virtualizationItems = [
     i18nPublish={publishText}
     i18nPublishInProgress={publishInProgressText}
     i18nPublishLogUrlText={publishLogUrlText}
+    i18nUnpublishInProgress={unpublishInProgressText}
     i18nUnpublishModalMessage={confirmUnpublishMessage}
     i18nUnpublishModalTitle={confirmUnpublishTitle}
     onDelete={action(deleteText)}
@@ -183,6 +190,7 @@ const virtualizationItems = [
     key="virtualizationListItem3"
     virtualizationName={virtualizationName3}
     virtualizationDescription={virtualizationDescription3}
+    virtualizationViewNames={[]}
     serviceVdbName={serviceVdbName3}
     detailsPageLink={''}
     i18nCancelText={cancelText}
@@ -193,17 +201,18 @@ const virtualizationItems = [
     i18nEdit={editText}
     i18nEditTip={editTip2}
     i18nError={errorText}
-    /* TD-636: Commented out for TP 
+    /* TD-636: Commented out for TP
     i18nExport={exportText} */
     i18nPublished={publishedText}
     i18nUnpublish={unpublishText}
     i18nPublish={publishText}
     i18nPublishInProgress={publishInProgressText}
     i18nPublishLogUrlText={publishLogUrlText}
+    i18nUnpublishInProgress={unpublishInProgressText}
     i18nUnpublishModalMessage={confirmUnpublishMessage}
     i18nUnpublishModalTitle={confirmUnpublishTitle}
     onDelete={action(deleteText)}
-    /* TD-636: Commented out for TP 
+    /* TD-636: Commented out for TP
     onExport={action(exportText)} */
     onUnpublish={action(unpublishText)}
     onPublish={action(publishText)}
@@ -215,21 +224,12 @@ const virtualizationItems = [
   />,
 ];
 
-const title = 'Virtualizations';
-const description =
-  'Syndesis creates and manages data virtualizations to expose as data source connections.';
 const createVirtualization = 'Create Data Virtualization';
 const createVirtualizationTip = 'Create Data Virtualization';
 const importText = 'Import';
 const importTip = 'Import a data virtualization';
 
 const defaultNotes =
-  '- Verify page title is "' +
-  title +
-  '"\n' +
-  '- Verify page description is "' +
-  description +
-  '"\n' +
   '- Verify toolbar is displayed\n' +
   '- Verify toolbar contains "' +
   importText +
@@ -297,7 +297,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}
@@ -315,7 +319,6 @@ stories
           onUpdateCurrentSortType={action('onUpdateCurrentSortType')}
           i18nCreateDataVirtualization={createVirtualization}
           i18nCreateDataVirtualizationTip={createVirtualization}
-          i18nDescription={text('i18nDescription', description)}
           i18nEmptyStateInfo={text(
             'i18nEmptyStateInfo',
             'There are no currently available Virtualizations. Please click on the button below to create one.'
@@ -324,8 +327,8 @@ stories
             'i18nEmptyStateTitle',
             createVirtualization
           )}
-          /* TD-636: Commented out for TP 
-          i18nImport={importText} 
+          /* TD-636: Commented out for TP
+          i18nImport={importText}
           i18nImportTip={importTip} */
           i18nLinkCreateVirtualization={text(
             'i18nLinkCreateVirtualization',
@@ -338,7 +341,6 @@ stories
             'Filter by Name...'
           )}
           i18nResultsCount={text('i18nResultsCount', '0 Results')}
-          i18nTitle={text('i18nTitle', title)}
           /* TD-636: Commented out for TP 
           onImport={action(importText)} */
           children={[]}
@@ -360,7 +362,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}
@@ -378,7 +384,6 @@ stories
           onUpdateCurrentSortType={action('onUpdateCurrentSortType')}
           i18nCreateDataVirtualization={createVirtualization}
           i18nCreateDataVirtualizationTip={createVirtualization}
-          i18nDescription={text('i18nDescription', description)}
           i18nEmptyStateInfo={text(
             'i18nEmptyStateInfo',
             'There are no currently available API connectors. Please click on the button below to create one.'
@@ -387,7 +392,7 @@ stories
             'i18nEmptyStateTitle',
             createVirtualization
           )}
-          /* TD-636: Commented out for TP 
+          /* TD-636: Commented out for TP
           i18nImport={importText}
           i18nImportTip={importTip} */
           i18nLinkCreateVirtualization={text(
@@ -403,7 +408,6 @@ stories
             'i18nResultsCount',
             virtualizationItems.length + ' Results'
           )}
-          i18nTitle={text('i18nTitle', title)}
           /* TD-636: Commented out for TP 
           onImport={action(importText)} */
           children={virtualizationItems}
@@ -425,7 +429,11 @@ stories
             placeholder: text('placeholder', 'Filter by name'),
             title: text('title', 'Name'),
           }}
-          currentSortType={'sort'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           filterTypes={[]}
           isSortAscending={true}
@@ -443,7 +451,6 @@ stories
           onUpdateCurrentSortType={action('onUpdateCurrentSortType')}
           i18nCreateDataVirtualization={createVirtualization}
           i18nCreateDataVirtualizationTip={createVirtualization}
-          i18nDescription={text('i18nDescription', description)}
           i18nEmptyStateInfo={text(
             'i18nEmptyStateInfo',
             'There are no currently available API connectors. Please click on the button below to create one.'
@@ -452,7 +459,7 @@ stories
             'i18nEmptyStateTitle',
             createVirtualization
           )}
-          /* TD-636: Commented out for TP 
+          /* TD-636: Commented out for TP
           i18nImport={importText}
           i18nImportTip={importTip} */
           i18nLinkCreateVirtualization={text(
@@ -468,7 +475,6 @@ stories
             'i18nResultsCount',
             virtItem.length + ' Results'
           )}
-          i18nTitle={text('i18nTitle', title)}
           /* TD-636: Commented out for TP 
           onImport={action(importText)} */
           hasListData={true}

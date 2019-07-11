@@ -123,6 +123,11 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
             builder.putConfiguredProperty("database", db);
             builder.putConfiguredProperty("collection", collection);
             builder.putConfiguredProperty("tailTrackIncreasingField", tailTrackIncreasingField);
+            builder.putConfiguredProperty("persistentTailTracking", "true");
+            builder.putConfiguredProperty("persistentId", "idTracker");
+            builder.putConfiguredProperty("tailTrackDb", "test");
+            builder.putConfiguredProperty("tailTrackCollection", "tracking");
+            builder.putConfiguredProperty("tailTrackField", "someTrackingId");
         }), newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock)));
     }
 }

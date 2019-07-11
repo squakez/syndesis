@@ -19,7 +19,7 @@
 	<parent>
 		<groupId>io.syndesis.connector</groupId>
 		<artifactId>connector-parent</artifactId>
-		<version>1.7-SNAPSHOT</version>
+		<version>1.8-SNAPSHOT</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -27,14 +27,12 @@
 	<artifactId>connector-mongodb</artifactId>
 	<name>Connector :: MongoDB</name>
 	<packaging>jar</packaging>
-    <!-- properties>
-        <camel.version>2.21.5</camel.version>
-    </properties -->
     
 	<dependencies>
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-mongodb3</artifactId>
+			<version>2.21.5</version>
             <scope>runtime</scope>
         </dependency> 
 		<dependency>

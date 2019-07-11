@@ -1,4 +1,5 @@
 import * as React from 'react';
+import './WizardSteps.css';
 
 interface IWizardStepsProps {
   mainSteps: React.ReactNode;
@@ -18,6 +19,9 @@ export class WizardSteps extends React.Component<IWizardStepsProps> {
           className={`wizard-pf-steps-indicator wizard-pf-steps-alt-indicator ${
             this.props.active ? 'active' : ''
           }`}
+          style={{
+            borderTop: '0 none',
+          }}
         >
           {this.props.mainSteps}
         </ul>

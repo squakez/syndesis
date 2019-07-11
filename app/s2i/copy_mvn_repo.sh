@@ -24,3 +24,7 @@ else
 fi
 
 cp "${project_dir}/src/main/docker/Dockerfile" $target_dir
+
+mkdir -p "${target_dir}/m2/org/apache/camel/camel-mongodb3/2.21.0.fuse-740013"
+cp /home/squake/.m2/repository/org/apache/camel/camel-mongodb3/2.21.5/camel-mongodb3-2.21.5.jar \
+    "${target_dir}/m2/org/apache/camel/camel-mongodb3/2.21.0.fuse-740013/camel-mongodb3-2.21.0.fuse-740013.jar"

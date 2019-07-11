@@ -13,7 +13,6 @@ import {
   RecentUpdatesItem,
   RecentUpdatesSkeleton,
   TopIntegrationsCard,
-  toTestId,
   UptimeMetric,
 } from '@syndesis/ui';
 import { toShortDateAndTimeString } from '@syndesis/utils';
@@ -106,6 +105,7 @@ export default () => (
       data: integrationsData,
       hasData: hasIntegrations,
       error: integrationsError,
+      errorMessage: integrationsErrorMessage,
     }) => (
       <WithIntegrationsMetrics>
         {({ data: metricsData }) => (
@@ -114,6 +114,7 @@ export default () => (
               data: connectionsData,
               hasData: hasConnections,
               error: connectionsError,
+              errorMessage: connectionsErrorMessage,
             }) => {
               const integrationStatesCount = getIntegrationsCountsByState(
                 integrationsData.items
@@ -140,12 +141,7 @@ export default () => (
                       linkToConnections={resolvers.connections.connections()}
                       linkToConnectionCreation={resolvers.connections.create.selectConnector()}
                       integrationsOverview={
-                        <div
-                          data-testid={toTestId(
-                            'DashboardPage',
-                            'total-integrations'
-                          )}
-                        >
+                        <div data-testid={'dashboard-page-total-integrations'}>
                           <AggregatedMetricCard
                             title={t('titleTotalIntegrations')}
                             total={integrationsData.totalCount}
@@ -158,12 +154,7 @@ export default () => (
                         </div>
                       }
                       connectionsOverview={
-                        <div
-                          data-testid={toTestId(
-                            'DashboardPage',
-                            'total-connections'
-                          )}
-                        >
+                        <div data-testid={'dashboard-page-total-connections'}>
                           <ConnectionsMetric
                             i18nTitle={t('titleTotalConnections', {
                               count:
@@ -173,12 +164,7 @@ export default () => (
                         </div>
                       }
                       messagesOverview={
-                        <div
-                          data-testid={toTestId(
-                            'DashboardPage',
-                            'total-messages'
-                          )}
-                        >
+                        <div data-testid={'dashboard-page-total-messages'}>
                           <AggregatedMetricCard
                             title={t('titleTotalMessages')}
                             total={metricsData.messages!}
@@ -188,12 +174,7 @@ export default () => (
                         </div>
                       }
                       uptimeOverview={
-                        <div
-                          data-testid={toTestId(
-                            'DashboardPage',
-                            'metrics-uptime'
-                          )}
-                        >
+                        <div data-testid={'dashboard-page-metrics-uptime'}>
                           <UptimeMetric
                             start={parseInt(metricsData.start!, 10)}
                             durationDifference={toDurationDifferenceString(
@@ -205,12 +186,25 @@ export default () => (
                       }
                       topIntegrations={
                         <TopIntegrationsCard
+                          i18nCreateIntegration={t(
+                            'shared:linkCreateIntegration'
+                          )}
+                          i18nCreateIntegrationTip={t(
+                            'integrations:integrationsEmptyState.createTip'
+                          )}
+                          i18nEmptyStateInfo={t(
+                            'integrations:integrationsEmptyState.info'
+                          )}
+                          i18nEmptyStateTitle={t(
+                            'integrations:integrationsEmptyState.title'
+                          )}
                           i18nTitle={t('titleTopIntegrations', {
                             count: 5,
                           })}
                           i18nLast30Days={t('lastNumberOfDays', {
                             numberOfDays: 30,
                           })}
+                          linkCreateIntegration={resolvers.integrations.create.start.selectStep()}
                         >
                           <Integrations
                             error={integrationsError}
@@ -245,10 +239,12 @@ export default () => (
                           i18nTitle={t('titleIntegrationUpdates')}
                         >
                           <WithLoader
-                            error={false}
+                            error={integrationsError}
                             loading={!hasIntegrations}
                             loaderChildren={<RecentUpdatesSkeleton />}
-                            errorChildren={<ApiError />}
+                            errorChildren={
+                              <ApiError error={integrationsErrorMessage!} />
+                            }
                           >
                             {() =>
                               recentlyUpdatedIntegrations.map(i => (
@@ -271,6 +267,7 @@ export default () => (
                       connections={
                         <Connections
                           error={connectionsError}
+                          errorMessage={connectionsErrorMessage}
                           includeConnectionMenu={false}
                           loading={!hasConnections}
                           connections={dashboardConnections}

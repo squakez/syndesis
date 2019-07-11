@@ -6,39 +6,37 @@ build::description() {
 
 build::usage() {
     cat <<EOT
-    -b  --backend                  Build only backend modules (core, extension, integration, connectors, server, meta)
-        --all-images               Build all modules with images: ui-angular, ui-react, server, meta, s2i, operator, upgrade, camel-k
-        --app-images               Build only application modules with Docker images (ui-angular, ui-react, server, meta, s2i)
-                                   and create images
-        --infra-images             Build only infrastructure modules with Docker images (operator, camel-k, upgrade) and create images
-    -m  --module <m1>,<m2>, ..     Build modules
-                                   Modules: ui-angular, ui-react, server, connector, s2i, meta, integration, extension, common, operator, camel-k, upgrade
-                                   Submodules: defined with [groupId]:artifactId (e.g. :connector-sql)
-    -d  --dependencies             Build also all project the specified module depends on
-        --skip-tests               Skip unit and system test execution
-        --skip-checks              Disable all checks
-    -f  --flash                    Skip checks and tests execution (fastest mode)
-    -i  --image                    Build Docker via s2i images, too (for those modules creating images)
-        --docker                   Use a plain Docker build for creating images. Used by CI for pushing to Docker Hub
-        --multi-stage              Multi-stage Dockerfile support for operator build (experimental)
-    -p  --project <project>        Specifies the project / namespace to create images
-    -g  --goals <g1>,<g2>, ..      Use custom Maven goals to execute for the build. Default goal is `install`
-    -e  --ensure                   If building the operator , run 'dep ensure' before building. Otherwise ignored.
-    -l  --local                    If building the operators, use a locally installed go
-                                   Otherwise run the Go build from a container (either local or Minishift's Docker  daemon)
-        --clean-cache              Used for the operator build to remove the local dependency cache.
-    -c  --clean                    Run clean builds (mvn clean)
-
-        --resume <m1>              Resume build from maven module (mvn -rf m1)
-        --batch-mode               Run mvn in batch mode
-        --camel-snapshot <version> Run a build with a specific Camel snapshot. The the
-                                   environment variable CAMEL_SNAPSHOT_VERSION is used and you need to set it or an error thrown.
-        --maven-mirror <url>       Use the maven mirror for the build, e.g. a maven repo proxy in OpenShift. If no
-                                   argument is given, the MAVEN_MIRROR_URL environment variable is used or
-                                   'http://nexus.myproject:8081/nexus/content/groups/public', if none is set.
-                                   See also https://docs.openshift.com/container-platform/3.5/dev_guide/app_tutorials/maven_tutorial.html
-        --man                      Open HTML documentation in the Syndesis Developer Handbook
-
+-b  --backend                  Build only backend modules (core, extension, integration, connectors, server, meta)
+    --all-images               Build all modules with images: ui-angular, ui-react, server, meta, s2i, operator, upgrade, camel-k
+    --app-images               Build only application modules with Docker images (ui-angular, ui-react, server, meta, s2i)
+                               and create images
+    --infra-images             Build only infrastructure modules with Docker images (operator, camel-k, upgrade) and create images
+-m  --module <m1>,<m2>, ..     Build modules
+                               Modules: ui-angular, ui-react, server, connector, s2i, meta, integration, extension, common, operator, camel-k, upgrade
+                               Submodules: defined with [groupId]:artifactId (e.g. :connector-sql)
+-d  --dependencies             Build also all project the specified module depends on
+    --skip-tests               Skip unit and system test execution
+    --skip-checks              Disable all checks
+-f  --flash                    Skip checks and tests execution (fastest mode)
+-i  --image                    Build Docker via s2i images, too (for those modules creating images)
+    --docker                   Use a plain Docker build for creating images. Used by CI for pushing to Docker Hub
+-p  --project <project>        Specifies the project / namespace to create images
+-g  --goals <g1>,<g2>, ..      Use custom Maven goals to execute for the build. Default goal is `install`
+-e  --ensure                   If building the operator , run 'dep ensure' before building. Otherwise ignored.
+-l  --local                    If building the operators, use a locally installed go
+                               Otherwise run the Go build from a container (either local or Minishift's Docker  daemon)
+    --clean-cache              Used for the operator build to remove the local dependency cache.
+-c  --clean                    Run clean builds (mvn clean)
+    --incremental [ref]        Run an incremental build, i.e. skip building of a module if committed or uncomitted changes
+                               against [ref] (default master) are not part of that module
+    --resume <m1>              Resume build from maven module (mvn -rf m1)
+    --batch-mode               Run mvn in batch mode
+    --camel-snapshot <version> Run a build with a specific Camel snapshot. The the
+                               environment variable CAMEL_SNAPSHOT_VERSION is used and you need to set it or an error thrown.
+    --maven-mirror <url>       Use the maven mirror for the build, e.g. a maven repo proxy in OpenShift. If no
+                               argument is given, the MAVEN_MIRROR_URL environment variable is used or
+                               'http://nexus.myproject:8081/nexus/content/groups/public', if none is set.
+                               See also https://docs.openshift.com/container-platform/3.5/dev_guide/app_tutorials/maven_tutorial.html
 EOT
 
 }
@@ -46,9 +44,6 @@ EOT
 build::run() {
     # Maven helper funcs
     source "$(basedir)/commands/util/maven_funcs"
-
-    # For building the operator
-    source "$(basedir)/commands/util/operator_funcs"
 
     # For OpenShift based builds
     source "$(basedir)/commands/util/openshift_funcs"
@@ -130,10 +125,10 @@ maven_args() {
     if [ $(hasflag --maven-mirror) ]; then
         local maven_mirror=$(readopt --maven-mirror)
         if [ -z "$maven_mirror" ]; then
-            args="$args -DmavenMirror=${MAVEN_MIRROR_URL:-http://nexus.myproject:8081/nexus/content/groups/public}"
-        else
-            args="$args -DmavenMirror=$maven_mirror"
+            maven_mirror=$(maven_mirror_url)
+            check_error $maven_mirror
         fi
+        args="$args -DmavenMirror=${maven_mirror}"
     fi
 
     if [ -z "$project" ]; then
@@ -164,27 +159,20 @@ maven_args() {
 
 do_operator() {
     local top_dir=$1
+    local tag=${2:-latest}
+    local OPERATOR_IMAGE="syndesis/syndesis-operator"
+
     echo "=============================================================================="
     echo "Building syndesis-operator"
     echo "=============================================================================="
 
-    local operator_dir="$top_dir/install/operator"
-
-    # New multi stage build for creating the operator image all in one step
-    if [ $(hasflag -i --image --docker) ] && [ $(hasflag --multi-stage) ]; then
-        if $(is_minishift_docker_daemon); then
-            echo "ERROR: Multistage build is not supported on Minishift as the Docker daemon in Minishift is too old"
-            exit 1
-        fi
-        create_multi_stage_operator_image "$operator_dir"
-        return
+    pushd "$top_dir/install/operator"
+    if [ $(hasflag -i --image --docker) ]; then
+        ./build.sh --image-build=docker --image-name="${OPERATOR_IMAGE}:$tag"
+    else
+        ./build.sh --image-build=s2i
     fi
-
-    build_operator "$operator_dir" "$(hasflag -l --local)" "$(hasflag -i --image --images)" "$(hasflag -f --flash --skip-tests)"
-
-    if [ "$(hasflag -i --image --docker)" ]; then
-        create_operator_image "$operator_dir" "$(hasflag --docker)"
-    fi
+    popd >/dev/null
 }
 
 do_camel_k() {
@@ -326,6 +314,19 @@ MODULES=(
   "s2i:common extension integration connector server"
   "test:common extension integration connector server s2i"
 )
+MODULE_PATHS=(
+  "upgrade:tools/upgrade/"
+  "operator:install/operator/"
+  "ui-angular:app/ui-angular/"
+  "ui-react:app/ui-react/"
+  "common:app/common/"
+  "extension:app/extension/"
+  "integration:app/integration/"
+  "connector:app/connector/"
+  "meta:app/meta/"
+  "server:app/server/"
+  "s2i:app/s2i/"
+)
 
 extract_modules() {
     local modules=""
@@ -351,6 +352,26 @@ extract_modules() {
         modules="$modules ${arg_modules//,/ }"
     fi
 
+    if [ -z "$modules" ]; then
+      modules=$ALL_MODULES
+    fi
+
+    if [ "$(hasflag --incremental)" ]; then
+      local changed_modules=""
+
+      for module in $modules; do
+        for module_path in "${MODULE_PATHS[@]}"; do
+          local key=${module_path%%:*}
+          local path=${module_path#*:}
+          if [ "$module" == $key ] && [ "$(has_changes $path)" ]; then
+            changed_modules="$changed_modules $module"
+          fi
+        done
+      done
+
+      modules=$changed_modules
+    fi
+
     if [ "$(hasflag --dependencies -d)" ]; then
         local extra_modules=""
         for module in $modules; do
@@ -364,7 +385,8 @@ extract_modules() {
         done
         modules="$modules $extra_modules"
     fi
-    if [ -z "$modules" ]; then
+    if [ -z "$modules" ] && [ ! "$(hasflag --incremental)" ]; then
+      echo "EVERYTHING"
       return
     fi
     # Unique modules
@@ -435,7 +457,7 @@ pick_submodule() {
 should_build() {
     local module="$1"
     local modules="$2"
-    if [ -z "$modules" ]; then
+    if [ "EVERYTHING" == "$modules" ]; then
         # Empty --> Build everything
         echo "true"
     elif [ "${modules//$module}" != "${modules}" ]; then

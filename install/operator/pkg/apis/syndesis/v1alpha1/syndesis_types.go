@@ -9,8 +9,9 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // SyndesisSpec defines the desired state of Syndesis
+// +k8s:openapi-gen=true
 type SyndesisSpec struct {
-	RouteHostName        string          `json:"routeHostname,omitempty"`
+	RouteHostname        string          `json:"routeHostname,omitempty"`
 	DemoData             *bool           `json:"demoData,omitempty"`
 	DeployIntegrations   *bool           `json:"deployIntegrations,omitempty"`
 	TestSupport          *bool           `json:"testSupport,omitempty"`
@@ -21,9 +22,13 @@ type SyndesisSpec struct {
 	OpenShiftConsoleUrl  string          `json:"openShiftConsoleUrl,omitempty"`
 	SarNamespace         string          `json:"sarNamespace,omitempty"`
 	Addons               AddonsSpec      `json:"addons,omitempty"`
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 }
 
 // SyndesisStatus defines the observed state of Syndesis
+// +k8s:openapi-gen=true
 type SyndesisStatus struct {
 	Phase              SyndesisPhase        `json:"phase,omitempty"`
 	UpgradeAttempts    int32                `json:"upgradeAttempts,omitempty"`
@@ -33,6 +38,9 @@ type SyndesisStatus struct {
 	Description        string               `json:"description,omitempty"`
 	Version            string               `json:"version,omitempty"`
 	TargetVersion      string               `json:"targetVersion,omitempty"`
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 }
 
 // =============================================================================
@@ -97,9 +105,7 @@ type ServerFeatures struct {
 
 type AddonsSpec map[string]Parameters
 
-type Parameters []Parameter
-
-type Parameter map[string]string
+type Parameters map[string]string
 
 // =============================================================================
 
@@ -132,8 +138,10 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Syndesis is the Schema for the syndesises API
+// Syndesis is the Schema for the syndeses API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Syndesis struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

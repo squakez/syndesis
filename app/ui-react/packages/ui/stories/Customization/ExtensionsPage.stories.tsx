@@ -38,7 +38,11 @@ storiesOf('Customization/Extensions/ExtensionsPage', module)
             placeholder: '',
             title: '',
           }}
-          currentSortType={'whatever'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           isSortAscending={true}
           resultsCount={1}
@@ -64,7 +68,7 @@ storiesOf('Customization/Extensions/ExtensionsPage', module)
           <ExtensionListItem
             detailsPageLink={'#ext-1-details'}
             extensionDescription={'lorem'}
-            extensionIcon={undefined}
+            extensionIcon={<div />}
             extensionId={'abc-123'}
             extensionName={'Some extension name'}
             i18nCancelText={'Cancel'}
@@ -113,7 +117,11 @@ storiesOf('Customization/Extensions/ExtensionsPage', module)
             placeholder: '',
             title: '',
           }}
-          currentSortType={'whatever'}
+          currentSortType={{
+            id: 'sort',
+            isNumeric: false,
+            title: 'Sort',
+          }}
           currentValue={''}
           isSortAscending={true}
           resultsCount={1}
