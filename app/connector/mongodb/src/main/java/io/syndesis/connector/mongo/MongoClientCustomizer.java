@@ -55,7 +55,8 @@ public class MongoClientCustomizer implements ComponentProxyCustomizer, CamelCon
                     consumeOption(camelContext, options, "password", String.class, mongoConf::setPassword);
                     consumeOption(camelContext, options, "adminDB", String.class, mongoConf::setAdminDB);
                     LOGGER.debug("Creating and registering a client connection to {}", mongoConf);
-                    MongoClient mongoClient = new MongoClient(mongoConf.getMongoClientURI());
+                    MongoClientURI mongoClientURI = new MongoClientURI(mongoConf.getMongoClientURI());
+                    MongoClient mongoClient = new MongoClient(mongoClientURI);
                     options.put("mongoConnection", mongoClient);
                     if(!options.containsKey("connectionBean")) {
                         //We safely put a default name instead of leaving null
@@ -72,62 +73,3 @@ public class MongoClientCustomizer implements ComponentProxyCustomizer, CamelCon
     }
 }
 
-class MongoConfiguration {
-    String host = "localhost";
-    String user;
-    String password;
-    int port = 27017;
-    private String adminDB = "admin";
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getAdminDB() {
-        return adminDB;
-    }
-
-    public void setAdminDB(String adminDB) {
-        this.adminDB = adminDB;
-    }
-
-    public MongoClientURI getMongoClientURI() {
-        return new MongoClientURI(String.format("mongodb://%s:%s@%s:%d/%s", this.user, this.password, this.host,
-                this.port, this.adminDB));
-    }
-
-    @Override
-    public String toString() {
-        return "MongoConfiguration [host=" + host + ", user=" + user + ", password=***, port=" + port + ", adminDB="
-                + adminDB + "]";
-    }
-
-}

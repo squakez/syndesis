@@ -32,6 +32,7 @@
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-mongodb3</artifactId>
+			<version>2.21.5</version>
             <scope>runtime</scope>
         </dependency> 
 		<dependency>
@@ -62,7 +63,15 @@
         <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
-        </dependency>    
+        </dependency>
+		<!-- Connection verifier -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>connector-support-verifier</artifactId>
+			<version>${project.version}</version>
+			<optional>true</optional>
+			<scope>provided</scope>
+		</dependency>
 		<!-- Testing -->
 		<dependency>
 			<groupId>junit</groupId>
@@ -82,6 +91,11 @@
 		<dependency>
 			<groupId>io.syndesis.connector</groupId>
 			<artifactId>connector-support-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.syndesis.connector</groupId>
+			<artifactId>connector-support-verifier</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
