@@ -27,18 +27,17 @@
 	<artifactId>connector-mongodb</artifactId>
 	<name>Connector :: MongoDB</name>
 	<packaging>jar</packaging>
-    
+
 	<dependencies>
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-mongodb3</artifactId>
-			<version>2.21.5</version>
             <scope>runtime</scope>
-        </dependency> 
+        </dependency>
 		<dependency>
 			<groupId>org.apache.camel</groupId>
 			<artifactId>camel-core</artifactId>
-		</dependency>       		
+		</dependency>
 		<dependency>
 			<groupId>io.syndesis.common</groupId>
 			<artifactId>common-model</artifactId>
@@ -77,7 +76,7 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
-		</dependency>		
+		</dependency>
 		<dependency>
 			<groupId>org.apache.camel</groupId>
 			<artifactId>camel-test</artifactId>

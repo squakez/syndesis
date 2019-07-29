@@ -15,17 +15,17 @@ public class MongoConfiguration {
 
     public MongoConfiguration(Map<String, String> parameters) {
         super();
-        this.setHost(parameters.get("host"));
-        this.setUser(parameters.get("user"));
-        this.setPassword(parameters.get("password"));
+        this.host = parameters.get("host");
+        this.user = parameters.get("user");
+        this.password = parameters.get("password");
         // Optional parameters
         String optionalPort = parameters.getOrDefault("port", "");
         String optionalAdminDB = parameters.getOrDefault("adminDB", "");
         if (!"".equals(optionalPort)) {
-            this.setPort(Integer.parseInt(optionalPort));
+            this.port = Integer.parseInt(optionalPort);
         }
         if (!"".equals(optionalAdminDB)) {
-            this.setAdminDB(optionalAdminDB);
+            this.adminDB = optionalAdminDB;
         }
     }
 

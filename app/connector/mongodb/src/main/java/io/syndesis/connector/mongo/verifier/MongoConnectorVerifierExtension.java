@@ -15,7 +15,11 @@
  */
 package io.syndesis.connector.mongo.verifier;
 
-import com.mongodb.*;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoSecurityException;
+import com.mongodb.MongoSocketException;
 import io.syndesis.connector.mongo.MongoConfiguration;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.extension.verifier.DefaultComponentVerifierExtension;
