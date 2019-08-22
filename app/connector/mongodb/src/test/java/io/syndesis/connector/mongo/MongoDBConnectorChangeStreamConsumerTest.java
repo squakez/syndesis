@@ -15,6 +15,9 @@
  */
 package io.syndesis.connector.mongo;
 
+import java.io.IOException;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mongodb.client.model.CreateCollectionOptions;
 import io.syndesis.common.model.integration.Step;
@@ -26,13 +29,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-
 @SuppressWarnings({"PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert"})
-public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnectorTestSupport {
+public class MongoDBConnectorChangeStreamConsumerTest extends MongoDBConnectorTestSupport {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDBConnectorCappedCollectionConsumerTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDBConnectorChangeStreamConsumerTest.class);
     private static int ID = 1;
 
     // **************************
@@ -42,16 +42,14 @@ public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnect
     // JUnit will execute this method after the @BeforeClass of the superclass
     @BeforeClass
     public static void doCollectionSetup() {
-        // The feature only works with capped collections!
-        CreateCollectionOptions opts = new CreateCollectionOptions().capped(true).sizeInBytes(1024 * 1024);
-        database.createCollection("test", opts);
-        LOG.debug("Created a capped collection named test");
+        database.createCollection("test");
+        LOG.debug("Created collection named test");
     }
 
     @Override
     protected List<Step> createSteps() {
-        return fromMongoToMock("result", "io.syndesis.connector:connector-mongodb-tail-consumer", DATABASE, COLLECTION,
-            "id");
+        return fromMongoConsumerChangeStreamToMock("result", "io.syndesis.connector:connector-mongodb-changestream-consumer", DATABASE, COLLECTION,
+            "{ $match : { test : \"junit\" } }");
     }
 
     // **************************
@@ -64,20 +62,14 @@ public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnect
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedMessageCount(1);
         mock.expectedMessagesMatches((Exchange e) -> {
-            try {
                 Document doc = e.getMessage().getBody(Document.class);
-                JsonNode jsonNode = MAPPER.readTree(doc.toJson());
-                int id = jsonNode.get("id").asInt();
-                String value = jsonNode.get("someKey").asText();
-                return id <= ID && "someValue".equals(value);
-            } catch (IOException ex) {
-                return false;
-            }
+                return "junit".equals(doc.get("test"));
         });
         // Given
         Document doc = new Document();
         doc.append("id", ID++);
         doc.append("someKey", "someValue");
+        doc.append("test", "junit");
         collection.insertOne(doc);
         // Then
         mock.assertIsSatisfied();
@@ -85,7 +77,7 @@ public class MongoDBConnectorCappedCollectionConsumerTest extends MongoDBConnect
 
     @Test
     public void repeatMongoTest() throws Exception {
-        // As we are tracking _id, any new insert should trigger the new document only
+        // As we are filtering, any new insert should trigger the new document only
         mongoTest();
     }
 

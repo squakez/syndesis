@@ -98,7 +98,7 @@
     },
     {
       "actionType": "connector",
-      "description": "Mongo DB consumer",
+      "description": "Mongo DB tailable consumer",
       "descriptor": {
         "componentScheme": "mongodb3",
         "inputDataShape": {
@@ -220,8 +220,84 @@
           }
         ]
       },
-      "id": "io.syndesis.connector:connector-mongodb-consumer",
-      "name": "Mongo consumer",
+      "id": "io.syndesis.connector:connector-mongodb-tail-consumer",
+      "name": "Mongo tail consumer",
+      "pattern": "From"
+    },
+    {
+      "actionType": "connector",
+      "description": "Mongo DB change stream consumer",
+      "descriptor": {
+        "componentScheme": "mongodb3",
+        "inputDataShape": {
+          "kind": "json-schema"
+        },
+        "outputDataShape": {
+          "kind": "json-schema"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Consumer configuration",
+            "name": "Database",
+            "properties": {
+              "database": {
+                "deprecated": false,
+                "displayName": "Database name",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Database name",
+                "order": "1",
+                "placeholder": "database",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "collection": {
+                "deprecated": false,
+                "displayName": "Collection name",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Collection name",
+                "order": "2",
+                "placeholder": "collection",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "consumerType": {
+                "deprecated": false,
+                "displayName": "Filter used to track incoming documents",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "consumerType",
+                "order": "3",
+                "placeholder": "consumerType",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "streamFilter": {
+                "deprecated": false,
+                "displayName": "Filter used to track incoming documents",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "streamFilter",
+                "order": "4",
+                "placeholder": "streamFilter",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis.connector:connector-mongodb-changestream-consumer",
+      "name": "Mongo change stream consumer",
       "pattern": "From"
     }
   ],

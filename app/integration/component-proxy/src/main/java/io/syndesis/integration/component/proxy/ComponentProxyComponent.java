@@ -387,6 +387,9 @@ public class ComponentProxyComponent extends DefaultComponent {
             }
         }
 
+        endpointOptions.put("consumerType", (String)options.get("consumerType"));
+        endpointOptions.put("streamFilter", (String)options.get("streamFilter"));
+
         // add extra options from remaining (context-path)
         if (remaining != null) {
             String targetUri = componentScheme + ":" + remaining;

@@ -24,6 +24,7 @@ import de.flapdoodle.embed.mongo.MongodStarter;
 import de.flapdoodle.embed.mongo.config.IMongodConfig;
 import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
+import de.flapdoodle.embed.mongo.config.Storage;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
 import io.syndesis.common.model.integration.Step;
@@ -32,8 +33,13 @@ import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import static de.flapdoodle.embed.mongo.distribution.Version.Main.PRODUCTION;
+import static de.flapdoodle.embed.mongo.distribution.Version.Main.V3_6;
+import static de.flapdoodle.embed.process.runtime.Network.localhostIsIPv6;
 
 public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 
@@ -59,17 +65,35 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
 
     @BeforeClass
     public static void startUpMongo() throws Exception {
-        IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
+        /*
+        IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.V3_6)
             .net(new Net(HOST, PORT, Network.localhostIsIPv6())).build();
 
         MongodStarter starter = MongodStarter.getDefaultInstance();
         mongodExecutable = starter.prepare(mongodConfig);
         mongodExecutable.start();
+         */
+
+        IMongodConfig mongodConfig = new MongodConfigBuilder()
+            .version(Version.Main.V3_6)
+            .net(new Net(PORT, Network.localhostIsIPv6()))
+            .replication(new Storage(null, "replicationName", 5000))
+            .configServer(true)
+            .build();
+
+        MongodStarter starter = MongodStarter.getDefaultInstance();
+        mongodExecutable = starter.prepare(mongodConfig);
+        mongodExecutable.start();
+
+        // init replica set
+        mongoClient = new MongoClient("localhost", PORT);
+        mongoClient.getDatabase("admin").runCommand(new Document("replSetInitiate", new Document()));
+
         initClient();
     }
 
     private static void initClient() {
-        mongoClient = new MongoClient(HOST);
+        //mongoClient = new MongoClient(HOST);
         createAuthorizationUser();
         database = mongoClient.getDatabase(DATABASE);
         collection = database.getCollection(COLLECTION);
@@ -107,6 +131,21 @@ public abstract class MongoDBConnectorTestSupport extends ConnectorTestSupport {
                 builder.putConfiguredProperty("operation", operation);
             }));
     }
+
+    // TODO refactor properly!
+    protected List<Step> fromMongoConsumerChangeStreamToMock(String mock, String connector, String db, String collection, String streamFilter) {
+        return Arrays.asList(newEndpointStep("mongodb3", connector, builder -> {
+        }, builder -> {
+            builder.putConfiguredProperty("host", HOST);
+            builder.putConfiguredProperty("user", USER);
+            builder.putConfiguredProperty("password", PASSWORD);
+            builder.putConfiguredProperty("database", db);
+            builder.putConfiguredProperty("collection", collection);
+            builder.putConfiguredProperty("createCollection", "false");
+            builder.putConfiguredProperty("consumerType", "changeStreams");
+            builder.putConfiguredProperty("streamFilter", streamFilter);
+            builder.putConfiguredProperty("anythingelse", "false");
+        }), newSimpleEndpointStep("mock", builder -> builder.putConfiguredProperty("name", mock)));    }
 
     protected List<Step> fromMongoToMock(String mock, String connector, String db, String collection,
                                          String tailTrackIncreasingField) {
