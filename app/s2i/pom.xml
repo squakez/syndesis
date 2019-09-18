@@ -35,6 +35,7 @@
     <!-- Must be set empty here so that it can be overridden from the outside-->
     <!-- Don't delete this line -->
     <maven.repo.local></maven.repo.local>
+    <maven.exec.skip>false</maven.exec.skip>
     <license.dir>${project.basedir}/src/main/resources/licenses</license.dir>
     <license.output.dir>${project.build.directory}/licenses</license.output.dir>
   </properties>
@@ -111,6 +112,9 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <skip>${maven.exec.skip}</skip>
+        </configuration>
         <executions>
           <execution>
             <!-- Generate a sample project with an integration which contains
