@@ -13,12 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.syndesis.server.credential;
 
-public final class UnconfiguredProperties extends SocialProperties {
-    public static final SocialProperties INSTANCE = new UnconfiguredProperties();
+/**
+ * Basic configuration properties for spring social.
+ */
+public abstract class SocialProperties {
 
-    private UnconfiguredProperties() {
-        // marker implementation
+    /**
+     * Application id.
+     */
+    private String appId;
+
+    /**
+     * Application secret.
+     */
+    private String appSecret;
+
+    public String getAppId() {
+        return this.appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
+
+    public String getAppSecret() {
+        return this.appSecret;
+    }
+
+    public void setAppSecret(String appSecret) {
+        this.appSecret = appSecret;
     }
 }
