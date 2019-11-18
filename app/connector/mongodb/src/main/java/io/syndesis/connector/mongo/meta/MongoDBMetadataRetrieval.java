@@ -71,7 +71,11 @@ public final class MongoDBMetadataRetrieval extends ComponentMetadataRetrieval {
     }
 
     public SyndesisMetadata buildDatashape(String actionId, DataShape schema, Map<String, Object> properties) {
-        if (isFilterAction(actionId)) {
+        if ("io.syndesis.connector:connector-mongodb-update".equals(actionId) ||
+            "io.syndesis.connector:connector-mongodb-find".equals(actionId) ||
+            "io.syndesis.connector:connector-mongodb-delete".equals(actionId) ||
+            "io.syndesis.connector:connector-mongodb-upsert".equals(actionId) ||
+            "io.syndesis.connector:connector-mongodb-count".equals(actionId)) {
             return SyndesisMetadata.of(
                 MongoDBMetadataRetrieval.criteria(ConnectorOptions.extractOption(properties,"filter")),
                 schema);
@@ -82,15 +86,6 @@ public final class MongoDBMetadataRetrieval extends ComponentMetadataRetrieval {
         } else {
             throw new IllegalArgumentException(String.format("Could not find any dynamic metadata adaptation for action %s", actionId));
         }
-    }
-
-    @SuppressWarnings("MethodCanBeStatic")
-    private boolean isFilterAction(String actionId) {
-        return "io.syndesis.connector:connector-mongodb-update".equals(actionId) ||
-            "io.syndesis.connector:connector-mongodb-find".equals(actionId) ||
-            "io.syndesis.connector:connector-mongodb-delete".equals(actionId) ||
-            "io.syndesis.connector:connector-mongodb-upsert".equals(actionId) ||
-            "io.syndesis.connector:connector-mongodb-count".equals(actionId);
     }
 
     public static DataShape any(String name) {
