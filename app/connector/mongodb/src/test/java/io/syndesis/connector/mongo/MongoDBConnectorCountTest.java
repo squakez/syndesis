@@ -33,7 +33,8 @@ public class MongoDBConnectorCountTest extends MongoDBConnectorProducerTestSuppo
 
     @Override
     protected List<Step> createSteps() {
-        return fromDirectToMongo("start", "io.syndesis.connector:connector-mongodb-count", DATABASE, COLLECTION);
+        return fromDirectToMongo("start", "io.syndesis.connector:connector-mongodb-count", DATABASE, COLLECTION, null,
+            "{\"test\":\":#someText\"}");
     }
 
     @Test
@@ -44,7 +45,7 @@ public class MongoDBConnectorCountTest extends MongoDBConnectorProducerTestSuppo
         collection.insertOne(Document.parse(json));
         collection.insertOne(Document.parse(json2));
         // Given
-        String countArguments = "{\"test\":\"single\"}";
+        String countArguments = "{\"someText\":\"single\"}";
         Long result = template.requestBody("direct:start", countArguments, Long.class);
         // Then
         Assertions.assertThat(result).isEqualTo(1L);
@@ -54,13 +55,13 @@ public class MongoDBConnectorCountTest extends MongoDBConnectorProducerTestSuppo
     public void mongoCountMultiTest() {
         // When
         String json = String.format("{\"test\":\"unit\",\"batchNo\":%d}", 33);
-        String json2 = String.format("{\"test\":\"unit\",\"batchNo\":%d}", 33);
+        String json2 = String.format("{\"test\":\"unit\",\"batchNo\":%d}", 35);
         String json3 = String.format("{\"test\":\"unit3\",\"batchNo\":%d}", 44);
         collection.insertOne(Document.parse(json));
         collection.insertOne(Document.parse(json2));
         collection.insertOne(Document.parse(json3));
         // Given
-        String countArguments = "{\"batchNo\":33}";
+        String countArguments = "{\"someText\": \"unit\"}";
         Long result = template.requestBody("direct:start", countArguments, Long.class);
         // Then
         Assertions.assertThat(result).isEqualTo(2L);
