@@ -25,7 +25,14 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.Test;
 
-public class MongoDBConnectorFindByIdTest extends MongoDBConnectorTestSupport {
+public class MongoDBConnectorFindByIdTest extends MongoDBConnectorProducerTestSupport {
+
+    private final static String COLLECTION = "findByIdCollection";
+
+    @Override
+    public String getCollectionName() {
+        return COLLECTION;
+    }
 
     @Override
     protected List<Step> createSteps() {
