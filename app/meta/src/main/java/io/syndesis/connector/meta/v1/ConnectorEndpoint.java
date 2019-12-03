@@ -24,6 +24,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.Map;
 
 import io.syndesis.connector.support.verifier.api.MetadataRetrieval;
+import io.syndesis.connector.support.verifier.api.SyndesisMetaConnectionProperties;
 import io.syndesis.connector.support.verifier.api.SyndesisMetadata;
 import org.apache.camel.CamelContext;
 import org.apache.camel.NoSuchBeanException;
@@ -38,7 +39,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Path("/connectors")
 public class ConnectorEndpoint {
-    private static final Logger LOGGER = LoggerFactory.getLogger(VerifierEndpoint.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorEndpoint.class);
     private static final String RESOURCE_PATH = "META-INF/syndesis/connector/meta/";
 
     @Autowired
@@ -52,9 +53,19 @@ public class ConnectorEndpoint {
     @Path("/{connectorId}/actions/{actionId}")
     public SyndesisMetadata actions(@PathParam("connectorId") final String connectorId, @PathParam("actionId") final String actionId,
         final Map<String, Object> properties) {
+        MetadataRetrieval adapter = findAdapter(connectorId);
+        try {
+            return adapter.fetch(camelContext, connectorId, actionId, properties);
+        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final Exception e) {
+            LOGGER.error("Unable to fetch and process metadata for connector: {}, action: {}", connectorId, actionId);
+            LOGGER.debug("Unable to fetch and process metadata for connector: {}, action: {}, properties: {}", connectorId, actionId,
+                properties, e);
+            throw adapter.handle(e);
+        }
+    }
 
+    private MetadataRetrieval findAdapter(String connectorId) {
         MetadataRetrieval adapter = null;
-
         try {
             adapter = applicationContext.getBean(connectorId + "-adapter", MetadataRetrieval.class);
         } catch (NoSuchBeanDefinitionException | NoSuchBeanException ignored) {
@@ -76,14 +87,16 @@ public class ConnectorEndpoint {
             throw new IllegalStateException("Unable to find adapter for: " + connectorId);
         }
 
-        try {
-            return adapter.fetch(camelContext, connectorId, actionId, properties);
-        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") final Exception e) {
-            LOGGER.error("Unable to fetch and process metadata for connector: {}, action: {}", connectorId, actionId);
-            LOGGER.debug("Unable to fetch and process metadata for connector: {}, action: {}, properties: {}", connectorId, actionId,
-                properties, e);
+        return adapter;
+    }
 
-            throw adapter.handle(e);
-        }
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/{connectorId}/properties")
+    public SyndesisMetaConnectionProperties properties(@PathParam("connectorId") final String connectorId, final Map<String, Object> properties) {
+        LOGGER.info("Calling properties({})", properties);
+        MetadataRetrieval adapter = findAdapter(connectorId);
+        return adapter.fetchConnectionDynamicProperties(properties);
     }
 }

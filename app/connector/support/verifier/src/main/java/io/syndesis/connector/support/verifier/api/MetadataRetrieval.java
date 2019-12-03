@@ -41,4 +41,8 @@ public interface MetadataRetrieval {
     default RuntimeException handle(final Exception e) {
         return new SyndesisServerException(e.getMessage() + ". Unable to fetch and process metadata", e);
     }
+
+    default SyndesisMetaConnectionProperties fetchConnectionDynamicProperties(Map<String, Object> properties){
+        return null;
+    }
 }

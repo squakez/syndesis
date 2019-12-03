@@ -17,17 +17,23 @@ package io.syndesis.connector.kafka;
 
 import io.syndesis.connector.support.verifier.api.ComponentMetadataRetrieval;
 import io.syndesis.connector.support.verifier.api.PropertyPair;
+import io.syndesis.connector.support.verifier.api.SyndesisMetaConnectionProperties;
 import io.syndesis.connector.support.verifier.api.SyndesisMetadata;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.extension.MetaDataExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class KafkaMetaDataRetrieval extends ComponentMetadataRetrieval {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaMetaDataRetrieval.class);
 
     /**
      * TODO: use local extension, remove when switching to camel 2.22.x
@@ -56,4 +62,18 @@ public class KafkaMetaDataRetrieval extends ComponentMetadataRetrieval {
         }
     }
 
+    @Override
+    public SyndesisMetaConnectionProperties fetchConnectionDynamicProperties(Map<String, Object> properties) {
+        LOGGER.info("Calling fetchConnectionDynamicProperties({})", properties);
+
+        // To retrieve dynamically any connection information
+        Map<String, List<PropertyPair>> dynamicProperties = new HashMap<>();
+        List<PropertyPair> brokers = new ArrayList<>();
+        brokers.add(new PropertyPair("cluster1","172.0.0.1:9092,172.0.0.2:9092,172.0.0.3:9092"));
+        brokers.add(new PropertyPair("cluster2","172.10.10.11:9092,172.10.10.12:9092,172.10.10.13:9092"));
+        // ...
+        dynamicProperties.put("brokers", brokers);
+
+        return new SyndesisMetaConnectionProperties(dynamicProperties);
+    }
 }
