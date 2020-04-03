@@ -100,6 +100,13 @@ public interface Extension extends WithId<Extension>, WithActions<Action>, WithN
     @NotNull(groups = AllValidations.class)
     Type getExtensionType();
 
+    // Method used for filtering purpose
+    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    default String getExtensionTypeAsText() {
+        return this.getExtensionType().name();
+    }
+
     @JsonIgnore
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     default List<StepAction> getStepActions() {
