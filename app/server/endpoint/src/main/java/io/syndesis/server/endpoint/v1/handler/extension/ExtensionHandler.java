@@ -15,13 +15,6 @@
  */
 package io.syndesis.server.endpoint.v1.handler.extension;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -41,6 +34,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiResponse;
@@ -65,17 +65,14 @@ import io.syndesis.server.api.generator.util.IconGenerator;
 import io.syndesis.server.dao.file.FileDAO;
 import io.syndesis.server.dao.file.FileDataManager;
 import io.syndesis.server.dao.manager.DataManager;
-import io.syndesis.server.endpoint.util.FilterOptionsParser;
 import io.syndesis.server.endpoint.util.PaginationFilter;
-import io.syndesis.server.endpoint.util.ReflectiveFilterer;
-import io.syndesis.server.endpoint.util.ReflectiveSorter;
 import io.syndesis.server.endpoint.v1.SyndesisRestException;
 import io.syndesis.server.endpoint.v1.handler.BaseHandler;
 import io.syndesis.server.endpoint.v1.operations.Deleter;
 import io.syndesis.server.endpoint.v1.operations.Getter;
 import io.syndesis.server.endpoint.v1.operations.Lister;
 import io.syndesis.server.endpoint.v1.operations.PaginationOptionsFromQueryParams;
-import io.syndesis.server.endpoint.v1.operations.SortOptionsFromQueryParams;
+import io.syndesis.server.endpoint.v1.util.PredicateFilter;
 import okio.BufferedSink;
 import okio.Okio;
 import org.jboss.resteasy.plugins.providers.multipart.InputPart;
@@ -256,8 +253,9 @@ public class ExtensionHandler extends BaseHandler implements Lister<Extension>, 
 
         return getDataManager().fetchAll(
             Extension.class,
-            new ReflectiveFilterer<>(Extension.class, FilterOptionsParser.fromString(query)),
-            new ReflectiveSorter<>(Extension.class, new SortOptionsFromQueryParams(uriInfo)),
+            new PredicateFilter<>(extension ->
+                extension.getStatus().isPresent() && extension.getStatus().get().equals(Extension.Status.Installed)
+            ),
             new PaginationFilter<>(new PaginationOptionsFromQueryParams(uriInfo))
         );
     }

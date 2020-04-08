@@ -20,17 +20,15 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import io.swagger.annotations.Api;
-import io.syndesis.server.dao.manager.DataManager;
 import io.syndesis.common.model.Kind;
 import io.syndesis.common.model.ListResult;
 import io.syndesis.common.model.action.ConnectorAction;
+import io.syndesis.server.dao.manager.DataManager;
 import io.syndesis.server.endpoint.util.PaginationFilter;
-import io.syndesis.server.endpoint.util.ReflectiveSorter;
 import io.syndesis.server.endpoint.v1.handler.BaseHandler;
 import io.syndesis.server.endpoint.v1.operations.Getter;
 import io.syndesis.server.endpoint.v1.operations.Lister;
 import io.syndesis.server.endpoint.v1.operations.PaginationOptionsFromQueryParams;
-import io.syndesis.server.endpoint.v1.operations.SortOptionsFromQueryParams;
 import io.syndesis.server.endpoint.v1.util.PredicateFilter;
 
 @Api(value = "actions")
@@ -66,7 +64,6 @@ public class ConnectorActionHandler extends BaseHandler implements Lister<Connec
         return getDataManager().fetchAll(
             ConnectorAction.class,
             new PredicateFilter<>(o -> o.getDescriptor().getConnectorId().equals(connectorId)),
-            new ReflectiveSorter<>(ConnectorAction.class, new SortOptionsFromQueryParams(uriInfo)),
             new PaginationFilter<>(new PaginationOptionsFromQueryParams(uriInfo))
         );
     }

@@ -15,6 +15,9 @@
  */
 package io.syndesis.server.endpoint.v1.handler.integration;
 
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,10 +26,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-
 import io.fabric8.openshift.api.model.DeploymentConfig;
 import io.syndesis.common.model.ListResult;
 import io.syndesis.common.model.integration.Integration;
@@ -34,11 +33,9 @@ import io.syndesis.common.model.integration.IntegrationDeployment;
 import io.syndesis.common.model.integration.IntegrationDeploymentState;
 import io.syndesis.server.dao.manager.DataManager;
 import io.syndesis.server.endpoint.util.PaginationFilter;
-import io.syndesis.server.endpoint.util.ReflectiveSorter;
 import io.syndesis.server.endpoint.v1.handler.integration.IntegrationDeploymentHandler.TargetStateRequest;
 import io.syndesis.server.endpoint.v1.handler.user.UserConfigurationProperties;
 import io.syndesis.server.openshift.OpenShiftService;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -47,7 +44,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static io.syndesis.common.model.integration.IntegrationDeployment.compositeId;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -100,12 +96,11 @@ public class IntegrationDeploymentHandlerTest {
         final List<Function<ListResult<IntegrationDeployment>, ListResult<IntegrationDeployment>>> filters = args
             .getAllValues();
 
-        assertThat(filters).hasSize(3);
+        assertThat(filters).hasSize(2);
 
         assertThat(filters.get(0)).isInstanceOf(IntegrationIdFilter.class)
             .satisfies(f -> assertThat(((IntegrationIdFilter) f).integrationId).isEqualTo(INTEGRATION_ID));
-        assertThat(filters.get(1)).isInstanceOf(ReflectiveSorter.class);
-        assertThat(filters.get(2)).isInstanceOf(PaginationFilter.class);
+        assertThat(filters.get(1)).isInstanceOf(PaginationFilter.class);
     }
 
     @Test

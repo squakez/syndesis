@@ -15,9 +15,6 @@
  */
 package io.syndesis.server.endpoint.v1.handler.setup;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -33,6 +30,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -44,12 +43,7 @@ import io.syndesis.common.model.connection.Connector;
 import io.syndesis.server.credential.Credentials;
 import io.syndesis.server.dao.manager.DataManager;
 import io.syndesis.server.endpoint.util.PaginationFilter;
-import io.syndesis.server.endpoint.util.ReflectiveFilterer;
-import io.syndesis.server.endpoint.util.ReflectiveSorter;
-import io.syndesis.server.endpoint.v1.operations.FilterOptionsFromQueryParams;
 import io.syndesis.server.endpoint.v1.operations.PaginationOptionsFromQueryParams;
-import io.syndesis.server.endpoint.v1.operations.SortOptionsFromQueryParams;
-
 import org.springframework.stereotype.Component;
 
 /**
@@ -105,8 +99,6 @@ public class OAuthAppHandler {
     public ListResult<OAuthApp> list(@Context final UriInfo uriInfo) {
         final List<Connector> oauthConnectors = dataMgr.fetchAll(Connector.class, //
             OAuthConnectorFilter.INSTANCE,
-            new ReflectiveFilterer<>(Connector.class, new FilterOptionsFromQueryParams(uriInfo).getFilters()),
-            new ReflectiveSorter<>(Connector.class, new SortOptionsFromQueryParams(uriInfo)),
             new PaginationFilter<>(new PaginationOptionsFromQueryParams(uriInfo))).getItems();
 
         final List<OAuthApp> apps = oauthConnectors.stream().map(OAuthApp::fromConnector).collect(Collectors.toList());
