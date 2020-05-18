@@ -39,7 +39,7 @@
     <deploy.archives>false</deploy.archives>
 
     <!-- Atlasmap version -->
-    <atlasmap.version>2.0.0-M.4</atlasmap.version>
+    <atlasmap.version>2.0.1</atlasmap.version>
 
     <!-- Image names -->
     <image.s2i>syndesis/syndesis-s2i:%l</image.s2i>
@@ -154,7 +154,7 @@
     <postgresql.version>9.1-901-1.jdbc4</postgresql.version>
     <logback.version>1.2.3</logback.version>
     <micrometer.version>1.2.0</micrometer.version>
-    <teiid.version>13.0.1</teiid.version>
+    <teiid.version>13.0.2</teiid.version>
     <aws-java-sdk-core.version>1.11.415</aws-java-sdk-core.version>
     <version.javax.activation>1.2.1</version.javax.activation>
 
@@ -776,6 +776,7 @@
                 com.sun.activation:jakarta.activation-api:1.2.1 within it
               -->
               <ignoredClassPattern>^javax\.activation\..*$</ignoredClassPattern>
+              <ignoredClassPattern>^org\.apache\.daffodil\..*$</ignoredClassPattern>
             </ignoredClassPatterns>
             <exceptions>
               <exception>
@@ -2830,6 +2831,21 @@
             <groupId>javax.mail</groupId>
             <artifactId>javax.mail-api</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.consol.citrus</groupId>
+        <artifactId>citrus-ws</artifactId>
+        <version>${citrus.version}</version>
+        <exclusions>
           <exclusion>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>

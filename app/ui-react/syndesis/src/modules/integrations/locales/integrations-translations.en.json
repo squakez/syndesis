@@ -108,6 +108,13 @@
         }
       }
     },
+    "extensions": {
+      "description": "Description",
+      "lastUpdated": "Last Updated",
+      "name": "Name",
+      "tableDescription": "Select extensions you want to associate with this integration. You may change your selection on the integration summary page.",
+      "tableName": "Extensions"
+    },
     "selectStep": {
       "title": "Choose a connection",
       "startDescription": "Click the connection that starts the integration. If the connection you need is not available, click Create Connection.",
@@ -164,10 +171,14 @@
     }
   },
   "errorKeys": {
-    "SqlEntityNotFoundError": "SQL Entity Not Found",
-    "SqlDataAccessError": "SQL Data Access Error",
-    "SqlConnectorError": "SQL Connector Error",
-    "ServerError": "Server Error"
+    "ServerError": "Server Error",
+    "ConnectorError": "Connector Error",
+    "EntityNotFoundError": "Entity Not Found Error",
+    "DataAccessError": "Data Access Error",
+    "NonTransientDataAccessError": "Non Transient Error",
+    "DataIntegrityViolationError": " Data Integrity Violation Error",
+    "DuplicateKeyError": "Duplicate Key Error",
+    "TransientDataAccessError": "Retryable Error"
   },
   "apiProvider": {
     "editSpecification": {

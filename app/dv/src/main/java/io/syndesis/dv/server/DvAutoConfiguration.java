@@ -19,14 +19,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.transaction.TransactionManager;
 
-import io.syndesis.dv.metadata.MetadataInstance;
-import io.syndesis.dv.metadata.internal.DefaultMetadataInstance;
-import io.syndesis.dv.metadata.internal.TeiidServer;
-import io.syndesis.dv.openshift.EncryptionComponent;
-import io.syndesis.dv.openshift.SyndesisConnectionSynchronizer;
-import io.syndesis.dv.openshift.TeiidOpenShiftClient;
-import io.syndesis.dv.repository.RepositoryManagerImpl;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -44,12 +36,21 @@ import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 import org.teiid.runtime.EmbeddedConfiguration;
 
 import io.syndesis.dv.RepositoryManager;
+import io.syndesis.dv.lsp.websocket.TeiidDdlWebSocketEndpoint;
+import io.syndesis.dv.metadata.MetadataInstance;
+import io.syndesis.dv.metadata.internal.DefaultMetadataInstance;
+import io.syndesis.dv.metadata.internal.TeiidServer;
+import io.syndesis.dv.openshift.EncryptionComponent;
+import io.syndesis.dv.openshift.SyndesisConnectionSynchronizer;
+import io.syndesis.dv.openshift.TeiidOpenShiftClient;
+import io.syndesis.dv.repository.RepositoryManagerImpl;
 
 @Configuration
-@EnableConfigurationProperties({DvConfigurationProperties.class, SpringMavenProperties.class})
+@EnableConfigurationProperties({DvConfigurationProperties.class, SpringMavenProperties.class, SSOConfigurationProperties.class})
 @ComponentScan(basePackageClasses = {RepositoryManagerImpl.class, DefaultMetadataInstance.class, SyndesisConnectionSynchronizer.class})
 @EnableAsync
 public class DvAutoConfiguration implements ApplicationListener<ContextRefreshedEvent>, AsyncConfigurer {
@@ -134,5 +135,12 @@ public class DvAutoConfiguration implements ApplicationListener<ContextRefreshed
         ThreadPoolTaskExecutor tpte = new ThreadPoolTaskExecutor();
         tpte.initialize();
         return tpte;
+    }
+
+    @Bean
+    public ServerEndpointExporter endpointExporter() {
+        ServerEndpointExporter endpointExporter = new ServerEndpointExporter();
+        endpointExporter.setAnnotatedEndpointClasses(TeiidDdlWebSocketEndpoint.class);
+        return endpointExporter;
     }
 }
