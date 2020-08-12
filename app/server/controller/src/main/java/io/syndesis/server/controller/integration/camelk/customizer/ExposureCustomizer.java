@@ -79,7 +79,7 @@ public class ExposureCustomizer implements CamelKIntegrationCustomizer {
 
             spec.addConfiguration(PROPERTY, "camel.rest.contextPath=/");
             spec.addConfiguration(PROPERTY, "camel.rest.component=servlet");
-            spec.addConfiguration(PROPERTY, "camel.rest.endpointProperty.headerFilterStrategy=syndesisHeaderStrategy");
+            spec.addConfiguration(PROPERTY, "camel.component.servlet.headerFilterStrategy=syndesisHeaderStrategy");
         }
 
         if (exposure.contains(Exposure.ROUTE)) {
